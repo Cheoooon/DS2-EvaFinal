@@ -1,49 +1,75 @@
 # Sticker Collect - Sistema de Gestión e Intercambio de Láminas
 
-Plataforma web estilo "Cromos de Steam" para la gestión, seguimiento y publicación de colecciones de láminas y álbumes de la comunidad. Desarrollada con arquitectura desacoplada: API REST en **NestJS** y frontend en **Astro**.
+Plataforma web estilo "Cromos de Steam" para la gestión, seguimiento y publicación de colecciones de láminas y álbumes de la comunidad. Desarrollada con arquitectura desacoplada: API REST en **NestJS** y frontend en **Astro** (SSR).
 
 ## 🛠️ Stack Tecnológico
 
-- **Backend:** NestJS (v10+), TypeScript, TypeORM, MySQL 8.x, Passport JWT, Bcrypt.
-- **Frontend:** Astro (v4+), SSR Mode, Tailwind CSS, Componentes React/Vue para la interactividad del "Libro".
-- **Almacenamiento:** MySQL para datos relacionales; almacenamiento local/S3 para imágenes de láminas.
+- **Backend:** NestJS (v10+), TypeScript, TypeORM, **MariaDB**, JWT, Bcrypt, **Multer** (para la gestión local de archivos e imágenes).
+- **Frontend:** Astro (v4+) en modo SSR. Rutas API nativas de Astro actuando como **BFF (Backend for Frontend)**. Componentes y scripts en **Vanilla JavaScript** para la interactividad en tiempo real del "Libro", sin depender de frameworks adicionales.
+- **Almacenamiento:** MariaDB para el modelo relacional; sistema de archivos local (`/uploads`) para imágenes de portadas y láminas.
 
 ## 📂 Estructura del Proyecto
 
 ```text
 stickers-platform/
-├── backend/            # API REST en NestJS (Módulos: Auth, Albums, Stickers, Collection)
-├── frontend/           # Aplicación Web en Astro (Vistas SSR y Componentes Interactivos)
-├── ARCHITECTURE.md     # Especificaciones técnicas, modelo DB y contrato de API
-└── README.md           # Guía general de instalación y arranque
+├── backend/            # API REST (NestJS)
+│   └── src/
+│       ├── auth/       # Autenticación JWT y usuarios
+│       ├── albums/     # CRUD de álbumes y portadas (Multer)
+│       ├── stickers/   # CRUD de láminas individuales y en lote (Multer)
+│       └── collection/ # Lógica de inventario de coleccionistas (Obtenidas/Repetidas)
+│
+├── frontend/           # Aplicación Web SSR (Astro)
+│   └── src/
+│       ├── components/ # Componentes UI reutilizables (AlbumCard, StickerCard)
+│       ├── pages/api/  # Rutas BFF para interceptar FormData y ocultar peticiones al backend
+│       └── pages/      # Vistas protegidas (Dashboard, My-Albums, My-Collection)
+│
+└── README.md           # Guía general del proyecto
 ```
 
 ## 🚀 Inicio Rápido (Desarrollo Local)
 
 ### Prerrequisitos
 - Node.js >= 18.x
-- Instancia de MySQL en ejecución (`album_db`)
+- Gestor de paquetes `pnpm` (o `npm`)
+- Instancia de **MariaDB** en ejecución
 
 ### 1. Configurar Backend (NestJS)
 ```bash
 cd backend
-npm install
+pnpm install
+# Crear y configurar el archivo .env con las credenciales de MariaDB y la clave JWT
 cp .env.example .env
-# Configurar credenciales DB en .env
-npm run start:dev
+pnpm run start:dev
 ```
 
 ### 2. Configurar Frontend (Astro)
 ```bash
 cd frontend
-npm install
+pnpm install
+# Crear el archivo .env y configurar BACKEND_URL=http://localhost:3000
 cp .env.example .env
-npm run dev
+pnpm run dev
 ```
 
 ---
 
-## 🔒 Roles y Permisos Principales
+## 🔒 Roles y Características Principales
 
-- **Creador (Owner):** Usuario autenticado que crea un álbum. Posee control total sobre la edición, borrado y adición/modificación de sus láminas. Puede cambiar la visibilidad a `Pública` (Compartida).
-- **Coleccionista (Follower):** Usuario autenticado que decide "seguir" un álbum público. Mantiene su propio inventario relacional (obtenidas, repetidas, faltantes) sin alterar la estructura original del álbum.
+El sistema maneja un control estricto de autorizaciones, protegiendo contra vulnerabilidades **IDOR (Insecure Direct Object Reference)** tanto a nivel de backend como de renderizado en Astro.
+
+- **Panel del Creador (Owner):** 
+  - Crea, edita y elimina sus propios álbumes.
+  - Sube imágenes de portadas y carga láminas (de forma masiva o individual) con fotos personalizadas.
+  - Puede mantener sus creaciones privadas o compartirlas con la **Comunidad**.
+- **Panel del Coleccionista (Follower):** 
+  - Explora el dashboard buscando álbumes públicos de la comunidad.
+  - Puede "Comenzar Colección" para hacer seguimiento de un álbum.
+  - Interactúa en tiempo real con su "Libro" usando botones (`+`, `-`) para marcar láminas obtenidas, faltantes o gestionar repetidas.
+  - Manejo seguro de colecciones "fantasma" (si un creador borra o privatiza un álbum que el usuario estaba coleccionando).
+
+## ⚡ Decisiones de Arquitectura
+
+- **BFF (Backend for Frontend):** El frontend en Astro procesa los formularios (`multipart/form-data`) a través de sus propias rutas `/api/*`. Astro extrae la cookie JWT, ensambla la petición y se comunica de forma segura con NestJS en el servidor, manteniendo el token invisible para el cliente.
+- **Interactividad Ligera:** En lugar de cargar librerías como React o Vue, el "Libro de Colección" utiliza JavaScript puro manipulando el DOM para actualizar estadísticas (Faltantes, Obtenidas, Repetidas) en tiempo real, ofreciendo una carga extremadamente rápida.
