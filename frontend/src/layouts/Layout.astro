@@ -1,0 +1,39 @@
+---
+interface Props {
+  title: string;
+  user?: { email: string } | null;
+}
+
+const { title, user } = Astro.props;
+---
+
+<!dnctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} - Sticker Collect</title>
+  </head>
+  <body style="margin: 0; font-family: system-ui, -apple-system, sans-serif; background-color: #f8fafc; color: #0f172a;">
+    <header style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; color: white; padding: 15px 30px;">
+      <a href="/" style="color: white; text-decoration: none;"><h2 style="margin: 0;">Sticker Collect</h2></a>
+      <nav>
+        {user ? (
+          <div>
+            <span>🟢 Logeado como: <strong>{user.email}</strong></span>
+            <a href="/api/auth/logout" style="margin-left: 20px; color: #ef4444; text-decoration: none; font-weight: bold;">Cerrar Sesión</a>
+          </div>
+        ) : (
+          <div>
+            <a href="/login" style="color: white; margin-right: 15px; text-decoration: none;">Iniciar Sesión</a>
+            <a href="/register" style="color: #38bdf8; text-decoration: none;">Registrarse</a>
+          </div>
+        )}
+      </nav>
+    </header>
+
+    <main style="max-width: 900px; margin: 40px auto; padding: 0 20px;">
+      <slot />
+    </main>
+  </body>
+</html>

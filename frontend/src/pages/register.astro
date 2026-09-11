@@ -1,0 +1,26 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+if (Astro.cookies.has('jwt')) return Astro.redirect('/');
+const hasError = Astro.url.searchParams.get('error') === 'true';
+---
+
+<Layout title="Crear Cuenta">
+  <div style="max-width: 400px; margin: 0 auto;">
+    <h1>Crear Cuenta</h1>
+    {hasError && <p style="color: #ef4444;">Error al registrar o el email ya existe</p>}
+
+    <form method="POST" action="/api/auth/register">
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px;">Email:</label>
+        <input type="email" name="email" required style="width: 100%; padding: 8px; box-sizing: border-box;" />
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px;">Contraseña:</label>
+        <input type="password" name="password" required style="width: 100%; padding: 8px; box-sizing: border-box;" />
+      </div>
+      <button type="submit" style="width: 100%; padding: 10px; background: #0f172a; color: white; border: none; cursor: pointer;">Registrarse</button>
+    </form>
+    <p>¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
+  </div>
+</Layout>

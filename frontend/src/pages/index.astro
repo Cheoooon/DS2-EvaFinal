@@ -1,0 +1,50 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AlbumCard from '../components/AlbumCard.astro';
+import jwt from 'jsonwebtoken';
+
+const token = Astro.cookies.get('jwt')?.value;
+if (!token) return Astro.redirect('/login');
+
+let user: { email: string; sub: number } | null = null;
+try {
+  user = jwt.decode(token) as unknown as { email: string; sub: number };
+} catch {
+  return Astro.redirect('/login');
+}
+
+// Cargar álbumes del usuario desde NestJS enviando el Bearer token
+const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3000';
+const res = await fetch(`${backendUrl}/albums/my-albums`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+
+const albums: Array<{ id: number; name: string; description: string; is_shared: boolean }> = res.ok ? await res.json() : [];
+---
+
+<Layout title="Mis Álbumes" user={user}>
+  <section style="margin-bottom: 30px; background: white; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1;">
+    <h2>Crear Nuevo Álbum</h2>
+    <form method="POST" action="/api/albums/create" style="display: flex; flex-direction: column; gap: 10px; max-width: 500px;">
+      <input type="text" name="name" placeholder="Nombre del Álbum (ej: Mundial 2026)" required style="padding: 8px;" />
+      <textarea name="description" placeholder="Descripción breve" style="padding: 8px;"></textarea>
+      <label style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" name="is_shared" /> Compartir con la comunidad
+      </label>
+      <button type="submit" style="padding: 10px; background: #0f172a; color: white; border: none; cursor: pointer;">Crear Álbum</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Mis Colecciones</h2>
+    {albums.length === 0 ? (
+      <p>Aún no has creado ningún álbum.</p>
+    ) : (
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px;">
+        {albums.map((album) => (
+          <AlbumCard id={album.id} name={album.name} description={album.description} isShared={album.is_shared} />
+        ))}
+      </div>
+    )}
+  </section>
+</Layout>

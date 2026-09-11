@@ -1,0 +1,20 @@
+---
+interface Props {
+  id: number;
+  name: string;
+  description?: string;
+  isShared: boolean;
+}
+
+const { id, name, description, isShared } = Astro.props;
+---
+<article style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; background: white;">
+  <h3 style="margin-top: 0; margin-bottom: 8px;">{name}</h3>
+  <p style="color: #64748b; font-size: 14px; margin-bottom: 12px;">{description || 'Sin descripción'}</p>
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <span style={`font-size: 12px; padding: 2px 8px; border-radius: 4px; background: ${isShared ? '#dcfce7' : '#f1f5f9'}; color: ${isShared ? '#166534' : '#475569'};`}>
+      {isShared ? 'Compartido' : 'Privado'}
+    </span>
+    <a href={`/albums/${id}`} style="color: #0284c7; text-decoration: none; font-weight: bold; font-size: 14px;">Ver Libro &rarr;</a>
+  </div>
+</article>
