@@ -50,4 +50,27 @@ export class StickersService {
       order: { number: 'ASC' },
     });
   }
+
+  async findOne(id: number) {
+    const sticker = await this.stickersRepository.findOne({ 
+      where: { id }, 
+      relations: { album: { owner: true } }
+    });
+    if (!sticker) throw new NotFoundException('Lámina no encontrada');
+    return sticker;
+  }
+
+  async update(id: number, userId: number, data: { number?: number; name?: string; sticker_type?: StickerType; image?: string }) {
+    const sticker = await this.findOne(id);
+    await this.verifyOwner(sticker.album.id, userId);
+    await this.stickersRepository.update(id, data);
+    return this.findOne(id);
+  }
+
+  async remove(id: number, userId: number) {
+    const sticker = await this.findOne(id);
+    await this.verifyOwner(sticker.album.id, userId);
+    await this.stickersRepository.delete(id);
+    return { success: true };
+  }
 }

@@ -1,0 +1,86 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import StickerCard from '../../../components/StickerCard.astro';
+import jwt from 'jsonwebtoken';
+
+const { id } = Astro.params;
+const token = Astro.cookies.get('jwt')?.value;
+if (!token) return Astro.redirect('/login');
+
+interface UserPayload {
+  email: string;
+  sub: number;
+}
+
+let user: UserPayload | null = null;
+try {
+  user = jwt.decode(token) as unknown as UserPayload;
+} catch {
+  return Astro.redirect('/login');
+}
+
+const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3000';
+
+const [albumRes, stickersRes] = await Promise.all([
+  fetch(`${backendUrl}/albums/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+  fetch(`${backendUrl}/albums/${id}/stickers`, { headers: { Authorization: `Bearer ${token}` } }),
+]);
+
+if (!albumRes.ok) return Astro.redirect('/my-albums');
+
+const album = await albumRes.json();
+const stickers = stickersRes.ok ? await stickersRes.json() : [];
+
+if (album.owner?.id !== user?.sub) return Astro.redirect('/'); 
+---
+
+<Layout title={album.name} user={user}>
+  <div style="margin-bottom: 20px;">
+    <a href="/my-albums" style="color: #0284c7; text-decoration: none;">&larr; Volver a Mis Álbumes</a>
+  </div>
+
+  <header style="display: flex; justify-content: space-between; align-items: flex-start; background: white; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 30px;">
+    <div style="display: flex; gap: 20px;">
+      {album.cover_image ? (
+        <img src={`${backendUrl}${album.cover_image}`} alt={album.name} style="width: 120px; height: 120px; object-fit: cover; border-radius: 6px;" />
+      ) : (
+        <div style="width: 120px; height: 120px; background: #e2e8f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #64748b;">
+          📘 Sin Portada
+        </div>
+      )}
+      <div>
+        <h1 style="margin: 0 0 8px 0;">{album.name}</h1>
+        <p style="color: #64748b; margin: 0 0 12px 0;">{album.description || 'Sin descripción'}</p>
+        <span style={`font-size: 12px; padding: 4px 8px; border-radius: 4px; background: ${album.is_shared ? '#dcfce7' : '#f1f5f9'}; color: ${album.is_shared ? '#166534' : '#475569'};`}>
+          {album.is_shared ? 'Publicado en la Comunidad' : 'Privado'}
+        </span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <a href={`/my-albums/${id}/edit`} style="padding: 8px 14px; background: #f1f5f9; color: #0f172a; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; border: 1px solid #cbd5e1;">✏️ Editar Álbum</a>
+      <a href={`/my-albums/${id}/stickers/new`} style="padding: 8px 14px; background: #0284c7; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">➕ Cargar Láminas</a>
+    </div>
+  </header>
+
+  <section>
+    <h2>Láminas ({stickers.length})</h2>
+    {stickers.length === 0 ? (
+      <p style="color: #64748b;">Este álbum no tiene láminas creadas.</p>
+    ) : (
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;">
+        {stickers.map((s: any) => (
+          <StickerCard
+            id={s.id}
+            albumId={Number(id)}
+            number={s.number}
+            name={s.name}
+            type={s.sticker_type}
+            image={s.image ? `${backendUrl}${s.image}` : undefined}
+            editable={true}
+          />
+        ))}
+      </div>
+    )}
+  </section>
+</Layout>

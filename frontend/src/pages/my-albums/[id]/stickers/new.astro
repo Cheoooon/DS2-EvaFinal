@@ -1,79 +1,56 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import StickerCard from '../../components/StickerCard.astro';
+import Layout from '../../../../layouts/Layout.astro';
 import jwt from 'jsonwebtoken';
+
+const { id } = Astro.params;
+const token = Astro.cookies.get('jwt')?.value;
+if (!token) return Astro.redirect('/login');
 
 interface UserPayload {
   email: string;
   sub: number;
 }
 
-interface Sticker {
-  id: number;
-  number: number;
-  name: string;
-  sticker_type: string;
-  image?: string;
-}
-
-const { id } = Astro.params;
-const token = Astro.cookies.get('jwt')?.value;
-
-if (!token) return Astro.redirect('/login');
-
 let user: UserPayload | null = null;
 try {
-  const decoded = jwt.decode(token) as unknown as UserPayload;
-  if (decoded?.email) user = decoded;
-  else throw new Error();
+  user = jwt.decode(token) as unknown as UserPayload;
 } catch {
-  Astro.cookies.delete('jwt', { path: '/' });
   return Astro.redirect('/login');
 }
 
 const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3000';
+const res = await fetch(`${backendUrl}/albums/${id}`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
-// Cargar láminas asociadas al álbum desde el backend en NestJS
-let stickers: Sticker[] = [];
-try {
-  const res = await fetch(`${backendUrl}/albums/${id}/stickers`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (res.ok) {
-    stickers = await res.json();
-  }
-} catch (e) {
-  console.error('Error al obtener láminas:', e);
-}
+if (!res.ok) return Astro.redirect('/my-albums');
+const album = await res.json();
+
+if (album.owner?.id !== user?.sub) return Astro.redirect('/');
 
 const errorParam = Astro.url.searchParams.get('error');
 ---
 
-<Layout title={`Álbum #${id}`} user={user}>
+<Layout title={`Cargar Láminas - ${album.name}`} user={user}>
   <div style="margin-bottom: 20px;">
-    <a href="/" style="color: #0284c7; text-decoration: none;">&larr; Volver a Mis Álbumes</a>
+    <a href={`/my-albums/${id}`} style="color: #0284c7; text-decoration: none;">&larr; Volver a {album.name}</a>
   </div>
 
-  <h1 style="margin-bottom: 24px;">Administración de Álbum #{id}</h1>
+  <div style="background: white; padding: 24px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 30px;">
+    <h1 style="margin-top: 0; margin-bottom: 8px;">➕ Agregar Láminas a {album.name}</h1>
+    <p style="color: #64748b; margin-top: 0; margin-bottom: 20px;">
+      Puedes añadir una o múltiples láminas a la vez. Cada lámina puede incluir su tipo y una imagen opcional.
+    </p>
 
-  {errorParam === 'empty_data' && (
-    <div style="background: #fef2f2; color: #991b1b; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
-      Debes completar al menos una lámina válida antes de guardar.
-    </div>
-  )}
-  {errorParam === 'backend' && (
-    <div style="background: #fef2f2; color: #991b1b; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
-      Error al intentar registrar las láminas en el servidor.
-    </div>
-  )}
-
-  <!-- Widget Formulario Dinámico -->
-  <section style="margin-bottom: 40px; background: white; padding: 24px; border: 1px solid #cbd5e1; border-radius: 8px;">
-    <h2 style="margin-top: 0; margin-bottom: 16px;">➕ Cargar / Agregar Láminas</h2>
+    {errorParam === 'empty_data' && (
+      <div style="background: #fef2f2; color: #991b1b; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+        Debes completar al menos una lámina válida antes de guardar.
+      </div>
+    )}
 
     <form method="POST" action={`/api/albums/${id}/stickers`} enctype="multipart/form-data">
       <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           <thead>
             <tr style="text-align: left; background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
               <th style="padding: 10px; width: 80px;">N°</th>
@@ -91,37 +68,15 @@ const errorParam = Astro.url.searchParams.get('error');
 
       <div style="display: flex; gap: 12px; justify-content: flex-end;">
         <button type="button" id="add-row-btn" style="padding: 10px 16px; background: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-          ➕ Otra lámina
+          ➕ Añadir otra fila
         </button>
         <button type="submit" style="padding: 10px 20px; background: #0f172a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
           Guardar Láminas
         </button>
       </div>
     </form>
-  </section>
+  </div>
 
-  <!-- Lista de Láminas Creadas -->
-  <section>
-    <h2 style="margin-bottom: 16px;">Láminas del Álbum ({stickers.length})</h2>
-    {stickers.length === 0 ? (
-      <p style="color: #64748b; background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
-        Este álbum aún no tiene láminas registradas.
-      </p>
-    ) : (
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;">
-        {stickers.map((s) => (
-          <StickerCard
-            number={s.number}
-            name={s.name}
-            type={s.sticker_type}
-            image={s.image ? `${backendUrl}${s.image}` : undefined}
-          />
-        ))}
-      </div>
-    )}
-  </section>
-
-  <!-- Script Interactivo del Widget -->
   <script>
     const container = document.getElementById('stickers-rows');
     const addBtn = document.getElementById('add-row-btn');

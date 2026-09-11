@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 
-export const POST: APIRoute = async ({ request, cookies, redirect }) => {
+export const POST: APIRoute = async ({ params, request, cookies, redirect }) => {
   const token = cookies.get('jwt')?.value;
   if (!token) return redirect('/login');
 
@@ -18,13 +18,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3000';
 
-  const res = await fetch(`${backendUrl}/albums`, {
-    method: 'POST',
+  await fetch(`${backendUrl}/albums/${params.id}`, {
+    method: 'PUT',
     headers: { Authorization: `Bearer ${token}` },
     body: outgoingFormData,
   });
 
-  if (!res.ok) return redirect('/my-albums/new?error=true');
-
-  return redirect('/my-albums');
+  return redirect(`/my-albums/${params.id}`);
 };

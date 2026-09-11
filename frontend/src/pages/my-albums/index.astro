@@ -1,0 +1,45 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AlbumCard from '../../components/AlbumCard.astro';
+import jwt from 'jsonwebtoken';
+
+const token = Astro.cookies.get('jwt')?.value;
+if (!token) return Astro.redirect('/login');
+
+let user: { email: string } | null = null;
+try {
+  user = jwt.decode(token) as unknown as { email: string };
+} catch {
+  return Astro.redirect('/login');
+}
+
+const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3000';
+const res = await fetch(`${backendUrl}/albums/my-albums`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+
+const albums: Array<{ id: number; name: string; description: string; is_shared: boolean; cover_image?: string }> = res.ok ? await res.json() : [];
+---
+
+<Layout title="Mis Álbumes Creados" user={user}>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <h1>Panel del Creador: Mis Álbumes</h1>
+    <a href="/my-albums/new" style="padding: 10px 16px; background: #0f172a; color: white; border-radius: 6px; text-decoration: none; font-weight: bold;">➕ Crear Nuevo Álbum</a>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px;">
+    {albums.length === 0 ? (
+      <p style="color: #64748b;">No has creado ningún álbum todavía.</p>
+    ) : (
+      albums.map((album) => (
+        <AlbumCard
+          id={album.id}
+          name={album.name}
+          description={album.description}
+          isShared={album.is_shared}
+          coverImage={album.cover_image ? `${backendUrl}${album.cover_image}` : undefined}
+        />
+      ))
+    )}
+  </div>
+</Layout>

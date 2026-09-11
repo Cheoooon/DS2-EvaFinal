@@ -5,7 +5,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   const token = cookies.get('jwt')?.value;
 
   if (!token) return redirect('/login');
-  if (!albumId) return redirect('/');
+  if (!albumId) return redirect('/my-albums');
 
   const incomingFormData = await request.formData();
   const outgoingFormData = new FormData();
@@ -13,7 +13,6 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
 
   let index = 0;
 
-  // Recorrer los campos generados dinámicamente por el widget (number_0, number_1, etc.)
   while (incomingFormData.has(`number_${index}`)) {
     const rawNumber = incomingFormData.get(`number_${index}`);
     const name = incomingFormData.get(`name_${index}`);
@@ -26,7 +25,6 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
         sticker_type: (sticker_type as string) || 'normal',
       });
 
-      // Procesar archivo de imagen opcional
       const imageFile = incomingFormData.get(`image_${index}`) as File;
       if (imageFile && imageFile.size > 0 && imageFile.name) {
         outgoingFormData.append(`image_${index}`, imageFile);
@@ -36,12 +34,10 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
     index++;
   }
 
-  // Si no se enviaron filas válidas, redirigir con aviso
   if (stickers.length === 0) {
-    return redirect(`/albums/${albumId}?error=empty_data`);
+    return redirect(`/my-albums/${albumId}/stickers/new?error=empty_data`);
   }
 
-  // Serializar el arreglo de láminas para enviarlo junto con los archivos a NestJS
   outgoingFormData.append('stickers', JSON.stringify(stickers));
 
   const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3000';
@@ -56,11 +52,11 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
     });
 
     if (!res.ok) {
-      return redirect(`/albums/${albumId}?error=backend`);
+      return redirect(`/my-albums/${albumId}/stickers/new?error=backend`);
     }
 
-    return redirect(`/albums/${albumId}`);
+    return redirect(`/my-albums/${albumId}`);
   } catch {
-    return redirect(`/albums/${albumId}?error=server_error`);
+    return redirect(`/my-albums/${albumId}/stickers/new?error=server_error`);
   }
 };

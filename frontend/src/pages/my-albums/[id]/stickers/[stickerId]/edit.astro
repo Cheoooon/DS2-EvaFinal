@@ -1,0 +1,74 @@
+---
+import Layout from '../../../../../layouts/Layout.astro';
+import jwt from 'jsonwebtoken';
+
+const { id, stickerId } = Astro.params;
+const token = Astro.cookies.get('jwt')?.value;
+if (!token) return Astro.redirect('/login');
+
+interface UserPayload {
+  email: string;
+  sub: number;
+}
+
+let user: UserPayload | null = null;
+try {
+  user = jwt.decode(token) as unknown as UserPayload;
+} catch {
+  return Astro.redirect('/login');
+}
+
+const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3000';
+const res = await fetch(`${backendUrl}/albums/${id}/stickers/${stickerId}`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+
+if (!res.ok) return Astro.redirect(`/my-albums/${id}`);
+const sticker = await res.json();
+
+if (sticker.album?.owner?.id !== user?.sub) return Astro.redirect('/');
+---
+
+<Layout title={`Editar Lámina #${sticker.number}`} user={user}>
+  <div style="margin-bottom: 20px;">
+    <a href={`/my-albums/${id}`} style="color: #0284c7; text-decoration: none;">&larr; Volver al Álbum</a>
+  </div>
+
+  <div style="max-width: 450px; margin: 0 auto; background: white; padding: 24px; border-radius: 8px; border: 1px solid #cbd5e1;">
+    <h2>Editar Lámina #{sticker.number}</h2>
+
+    <form method="POST" action={`/api/albums/${id}/stickers/${stickerId}/update`} enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 16px;">
+      <div>
+        <label style="display: block; font-weight: bold; margin-bottom: 4px;">Número:</label>
+        <input type="number" name="number" value={sticker.number} required style="width: 100%; padding: 8px; box-sizing: border-box;" />
+      </div>
+      <div>
+        <label style="display: block; font-weight: bold; margin-bottom: 4px;">Nombre:</label>
+        <input type="text" name="name" value={sticker.name} required style="width: 100%; padding: 8px; box-sizing: border-box;" />
+      </div>
+      <div>
+        <label style="display: block; font-weight: bold; margin-bottom: 4px;">Tipo:</label>
+        <select name="sticker_type" style="width: 100%; padding: 8px; box-sizing: border-box;">
+          <option value="normal" selected={sticker.sticker_type === 'normal'}>Normal</option>
+          <option value="holografica" selected={sticker.sticker_type === 'holografica'}>Holográfica</option>
+          <option value="especial" selected={sticker.sticker_type === 'especial'}>Especial</option>
+        </select>
+      </div>
+      <div>
+        <label style="display: block; font-weight: bold; margin-bottom: 4px;">Cambiar Imagen:</label>
+        <input type="file" name="image" accept="image/*" style="width: 100%;" />
+      </div>
+      <button type="submit" style="padding: 10px; background: #0f172a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+        Actualizar Lámina
+      </button>
+    </form>
+
+    <hr style="margin: 24px 0; border: 0; border-top: 1px solid #e2e8f0;" />
+
+    <form method="POST" action={`/api/albums/${id}/stickers/${stickerId}/delete`} onsubmit="return confirm('¿Eliminar esta lámina?');">
+      <button type="submit" style="width: 100%; padding: 10px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+        🗑️ Eliminar Lámina
+      </button>
+    </form>
+  </div>
+</Layout>
