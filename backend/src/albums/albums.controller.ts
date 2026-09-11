@@ -31,9 +31,14 @@ export class AlbumsController {
     return this.albumsService.findMyAlbums(req.user.id);
   }
 
+  @Get('community')
+  findCommunityAlbums() {
+    return this.albumsService.findCommunityAlbums();
+  }
+
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.albumsService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
+    return this.albumsService.findOne(id, req.user.id);
   }
 
   @Put(':id')

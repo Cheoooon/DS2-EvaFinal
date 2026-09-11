@@ -1,0 +1,127 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import StickerCard from '../../components/StickerCard.astro';
+import jwt from 'jsonwebtoken';
+
+interface UserPayload { email: string; sub: number; }
+const { id } = Astro.params;
+const token = Astro.cookies.get('jwt')?.value;
+if (!token) return Astro.redirect('/login');
+
+let user: UserPayload | null = null;
+try {
+  user = jwt.decode(token) as unknown as UserPayload;
+} catch {
+  return Astro.redirect('/login');
+}
+
+const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3000';
+
+const [albumRes, stickersRes, followedRes] = await Promise.all([
+  fetch(`${backendUrl}/albums/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+  fetch(`${backendUrl}/albums/${id}/stickers`, { headers: { Authorization: `Bearer ${token}` } }),
+  fetch(`${backendUrl}/collection/my-followed`, { headers: { Authorization: `Bearer ${token}` } })
+]);
+
+const isAccessible = albumRes.ok;
+
+const album = await albumRes.json();
+const stickers = stickersRes.ok ? await stickersRes.json() : [];
+const followedAlbums = followedRes.ok ? await followedRes.json() : [];
+
+const isOwner = album.owner?.id === user?.sub;
+const isFollowing = followedAlbums.some((a: any) => a.id === Number(id));
+---
+
+<Layout title={isAccessible ? album.name : "Álbum no accesible"} user={user}>
+  {!isAccessible ? (
+    <div style="background: white; padding: 40px; border-radius: 8px; border: 1px solid #cbd5e1; text-align: center; max-width: 500px; margin: 40px auto;">
+      <div style="font-size: 48px; margin-bottom: 16px;">🔒</div>
+      <h2 style="margin: 0 0 12px 0; color: #0f172a;">Álbum No Disponible</h2>
+      <p style="color: #64748b; margin-bottom: 24px;">
+        Este álbum no existe o su propietario lo ha configurado como privado.
+      </p>
+      <div style="display: flex; justify-content: center; gap: 16px; align-items: center; flex-wrap: wrap;">
+        <a href="/" style="display: inline-block; padding: 10px 20px; background: #0f172a; color: white; border-radius: 6px; text-decoration: none; font-weight: bold;">
+          &larr; Volver a Mis Colecciones
+        </a>
+        
+        <!-- Nuevo botón para quitar el álbum fantasma de la lista -->
+        <form method="POST" action={`/api/collection/${id}/unfollow`} onsubmit="return confirm('¿Quitar este álbum de tu lista de colecciones?');">
+          <button type="submit" style="padding: 10px 20px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            🗑️ Quitar de mi lista
+          </button>
+        </form>
+      </div>
+    </div>
+  ) : (
+  <div style="margin-bottom: 20px;">
+    <a href="/" style="color: #0284c7; text-decoration: none;">&larr; Volver al Inicio</a>
+  </div>
+
+  <header style="display: flex; justify-content: space-between; align-items: flex-start; background: white; padding: 24px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 30px;">
+    <div style="display: flex; gap: 20px;">
+      {album.cover_image ? (
+        <img src={`${backendUrl}${album.cover_image}`} alt={album.name} style="width: 120px; height: 120px; object-fit: cover; border-radius: 6px;" />
+      ) : (
+        <div style="width: 120px; height: 120px; background: #e2e8f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: bold;">
+          📘 Sin Portada
+        </div>
+      )}
+      <div>
+        <h1 style="margin: 0 0 8px 0;">{album.name}</h1>
+        <p style="color: #64748b; margin: 0 0 12px 0;">{album.description || 'Sin descripción'}</p>
+        <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: #dcfce7; color: #166534;">
+          Creado por: {album.owner?.email || 'Comunidad'}
+        </span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; flex-direction: column; align-items: flex-end;">
+      {isOwner && (
+        <a href={`/my-albums/${id}`} style="padding: 8px 14px; background: #f1f5f9; color: #0f172a; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; border: 1px solid #cbd5e1;">
+          ⚙️ Administrar (Creador)
+        </a>
+      )}
+
+      {isFollowing ? (
+        <>
+          <a href={`/my-collection/${id}`} style="padding: 10px 16px; background: #22c55e; color: white; border-radius: 6px; text-decoration: none; font-weight: bold;">
+            📖 Abrir mi Libro
+          </a>
+          <form method="POST" action={`/api/collection/${id}/unfollow`} onsubmit="return confirm('¿Dejar de coleccionar este álbum? Se perderá tu progreso.');">
+            <button type="submit" style="background: none; border: none; color: #ef4444; text-decoration: underline; cursor: pointer; font-size: 12px;">
+              Dejar de coleccionar
+            </button>
+          </form>
+        </>
+      ) : (
+        <form method="POST" action={`/api/collection/${id}/follow`}>
+          <button type="submit" style="padding: 10px 16px; background: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+            ➕ Comenzar Colección
+          </button>
+        </form>
+      )}
+    </div>
+  </header>
+
+  <section>
+    <h2>Vista Previa de Láminas ({stickers.length})</h2>
+    {stickers.length === 0 ? (
+      <p style="color: #64748b;">Este álbum aún no tiene láminas cargadas.</p>
+    ) : (
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; opacity: 0.7;">
+        {stickers.map((s: any) => (
+          <StickerCard
+            number={s.number}
+            name={s.name}
+            type={s.sticker_type}
+            image={s.image ? `${backendUrl}${s.image}` : undefined}
+            editable={false}
+          />
+        ))}
+      </div>
+    )}
+  </section>
+)}
+</Layout>

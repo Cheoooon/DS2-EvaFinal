@@ -5,9 +5,20 @@ interface Props {
   description?: string;
   isShared: boolean;
   coverImage?: string;
+  actionUrl?: string;  // Nueva propiedad opcional para el link
+  actionText?: string; // Nueva propiedad opcional para el texto del botón
 }
 
-const { id, name, description, isShared, coverImage } = Astro.props;
+// Valores por defecto si no se los pasamos
+const { 
+  id, 
+  name, 
+  description, 
+  isShared, 
+  coverImage, 
+  actionUrl = `/albums/${id}`, 
+  actionText = 'Ver Detalles >' 
+} = Astro.props;
 ---
 
 <article style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; background: white; display: flex; flex-direction: column; justify-content: space-between;">
@@ -27,6 +38,10 @@ const { id, name, description, isShared, coverImage } = Astro.props;
     <span style={`font-size: 12px; padding: 2px 8px; border-radius: 4px; background: ${isShared ? '#dcfce7' : '#f1f5f9'}; color: ${isShared ? '#166534' : '#475569'};`}>
       {isShared ? 'Público' : 'Privado'}
     </span>
-    <a href={`/my-albums/${id}`} style="color: #0284c7; text-decoration: none; font-weight: bold; font-size: 14px;">Administrar &rarr;</a>
+    
+    <!-- Aquí usamos las nuevas propiedades -->
+    <a href={actionUrl} style="color: #0284c7; text-decoration: none; font-weight: bold; font-size: 14px;">
+      {actionText}
+    </a>
   </div>
 </article>

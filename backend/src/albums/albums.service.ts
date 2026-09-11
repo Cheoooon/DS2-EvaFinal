@@ -36,16 +36,22 @@ export class AlbumsService {
     });
   }
 
-  async findOne(id: number) {
-    const album = await this.albumsRepository.findOne({ 
+  async findOne(id: number, userId?: number) {
+    const album = await this.albumsRepository.findOne({
       where: { id, is_active: true },
-      relations: { owner: true }
+      relations: { owner: true },
     });
+
     if (!album) throw new NotFoundException('Álbum no encontrado');
-    
+
+    if (!album.is_shared && album.owner.id !== userId) {
+      throw new ForbiddenException('Este álbum es privado');
+    }
+
     if (album.owner) {
       delete (album.owner as any).password_hash;
     }
+
     return album;
   }
 
@@ -59,5 +65,13 @@ export class AlbumsService {
     await this.verifyOwner(id, userId);
     await this.albumsRepository.update(id, { is_active: false }); // Soft-delete
     return { success: true };
+  }
+
+  async findCommunityAlbums() {
+    return this.albumsRepository.find({
+      where: { is_shared: true, is_active: true },
+      relations: { owner: true },
+      order: { created_at: 'DESC' },
+    });
   }
 }

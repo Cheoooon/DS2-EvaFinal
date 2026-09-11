@@ -3,14 +3,14 @@ import Layout from '../../../layouts/Layout.astro';
 import StickerCard from '../../../components/StickerCard.astro';
 import jwt from 'jsonwebtoken';
 
-const { id } = Astro.params;
-const token = Astro.cookies.get('jwt')?.value;
-if (!token) return Astro.redirect('/login');
-
 interface UserPayload {
   email: string;
   sub: number;
 }
+
+const { id } = Astro.params;
+const token = Astro.cookies.get('jwt')?.value;
+if (!token) return Astro.redirect('/login');
 
 let user: UserPayload | null = null;
 try {
@@ -31,7 +31,8 @@ if (!albumRes.ok) return Astro.redirect('/my-albums');
 const album = await albumRes.json();
 const stickers = stickersRes.ok ? await stickersRes.json() : [];
 
-if (album.owner?.id !== user?.sub) return Astro.redirect('/'); 
+// Protección IDOR: Validar pertenencia del álbum
+if (album.owner?.id !== user?.sub) return Astro.redirect('/');
 ---
 
 <Layout title={album.name} user={user}>
@@ -57,9 +58,16 @@ if (album.owner?.id !== user?.sub) return Astro.redirect('/');
       </div>
     </div>
 
-    <div style="display: flex; gap: 10px;">
-      <a href={`/my-albums/${id}/edit`} style="padding: 8px 14px; background: #f1f5f9; color: #0f172a; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; border: 1px solid #cbd5e1;">✏️ Editar Álbum</a>
-      <a href={`/my-albums/${id}/stickers/new`} style="padding: 8px 14px; background: #0284c7; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">➕ Cargar Láminas</a>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
+      <a href={`/albums/${id}`} style="padding: 8px 14px; background: #f8fafc; color: #0284c7; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; border: 1px solid #0284c7;">
+        🌐 Vista Pública
+      </a>
+      <a href={`/my-albums/${id}/edit`} style="padding: 8px 14px; background: #f1f5f9; color: #0f172a; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; border: 1px solid #cbd5e1;">
+        ✏️ Editar Álbum
+      </a>
+      <a href={`/my-albums/${id}/stickers/new`} style="padding: 8px 14px; background: #0284c7; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">
+        ➕ Cargar Láminas
+      </a>
     </div>
   </header>
 

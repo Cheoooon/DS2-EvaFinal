@@ -13,6 +13,10 @@ import { AlbumsModule } from './albums/albums.module.js';
 import { Sticker } from './stickers/sticker.entity.js';
 import { StickersModule } from './stickers/stickers.module.js';
 
+import { UserAlbum } from './collection/user-album.entity.js';
+import { UserSticker } from './collection/user-sticker.entity.js';
+import { CollectionModule } from './collection/collection.module.js';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -32,13 +36,14 @@ import { StickersModule } from './stickers/stickers.module.js';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
-        entities: [User, Album, Sticker],
+        entities: [User, Album, Sticker, UserAlbum, UserSticker],
         synchronize: true, // Solo desarrollo
       }),
     }),
     AuthModule,
     AlbumsModule,
     StickersModule,
+    CollectionModule,
   ],
 })
 export class AppModule {}
