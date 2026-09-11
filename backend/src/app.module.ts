@@ -1,15 +1,26 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+
 import { AuthModule } from './auth/auth.module.js';
 import { User } from './auth/user.entity.js';
+
 import { Album } from './albums/album.entity.js';
 import { AlbumsModule } from './albums/albums.module.js';
+
+import { Sticker } from './stickers/sticker.entity.js';
+import { StickersModule } from './stickers/stickers.module.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -21,12 +32,13 @@ import { AlbumsModule } from './albums/albums.module.js';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
-        entities: [User, Album],
+        entities: [User, Album, Sticker],
         synchronize: true, // Solo desarrollo
       }),
     }),
     AuthModule,
     AlbumsModule,
+    StickersModule,
   ],
 })
 export class AppModule {}

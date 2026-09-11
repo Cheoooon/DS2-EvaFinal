@@ -1,6 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, OneToMany } from 'typeorm';
 import type { Relation } from 'typeorm';
 import type { User } from '../auth/user.entity.js';
+import type { Sticker } from '../stickers/sticker.entity.js';
 
 @Entity('albums')
 export class Album {
@@ -25,7 +26,9 @@ export class Album {
   @CreateDateColumn()
   created_at: Date;
 
-  // Usamos el nombre 'User' en string y Relation<User> para romper el ciclo ESM
   @ManyToOne('User', (user: User) => user.albums, { onDelete: 'CASCADE' })
   owner: Relation<User>;
+
+  @OneToMany('Sticker', (sticker: Sticker) => sticker.album)
+  stickers: Relation<Sticker[]>;
 }

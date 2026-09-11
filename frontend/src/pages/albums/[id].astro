@@ -1,0 +1,183 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import StickerCard from '../../components/StickerCard.astro';
+import jwt from 'jsonwebtoken';
+
+interface UserPayload {
+  email: string;
+  sub: number;
+}
+
+interface Sticker {
+  id: number;
+  number: number;
+  name: string;
+  sticker_type: string;
+  image?: string;
+}
+
+const { id } = Astro.params;
+const token = Astro.cookies.get('jwt')?.value;
+
+if (!token) return Astro.redirect('/login');
+
+let user: UserPayload | null = null;
+try {
+  const decoded = jwt.decode(token) as unknown as UserPayload;
+  if (decoded?.email) user = decoded;
+  else throw new Error();
+} catch {
+  Astro.cookies.delete('jwt', { path: '/' });
+  return Astro.redirect('/login');
+}
+
+const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3000';
+
+// Cargar láminas asociadas al álbum desde el backend en NestJS
+let stickers: Sticker[] = [];
+try {
+  const res = await fetch(`${backendUrl}/albums/${id}/stickers`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.ok) {
+    stickers = await res.json();
+  }
+} catch (e) {
+  console.error('Error al obtener láminas:', e);
+}
+
+const errorParam = Astro.url.searchParams.get('error');
+---
+
+<Layout title={`Álbum #${id}`} user={user}>
+  <div style="margin-bottom: 20px;">
+    <a href="/" style="color: #0284c7; text-decoration: none;">&larr; Volver a Mis Álbumes</a>
+  </div>
+
+  <h1 style="margin-bottom: 24px;">Administración de Álbum #{id}</h1>
+
+  {errorParam === 'empty_data' && (
+    <div style="background: #fef2f2; color: #991b1b; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+      Debes completar al menos una lámina válida antes de guardar.
+    </div>
+  )}
+  {errorParam === 'backend' && (
+    <div style="background: #fef2f2; color: #991b1b; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+      Error al intentar registrar las láminas en el servidor.
+    </div>
+  )}
+
+  <!-- Widget Formulario Dinámico -->
+  <section style="margin-bottom: 40px; background: white; padding: 24px; border: 1px solid #cbd5e1; border-radius: 8px;">
+    <h2 style="margin-top: 0; margin-bottom: 16px;">➕ Cargar / Agregar Láminas</h2>
+
+    <form method="POST" action={`/api/albums/${id}/stickers`} enctype="multipart/form-data">
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+          <thead>
+            <tr style="text-align: left; background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="padding: 10px; width: 80px;">N°</th>
+              <th style="padding: 10px;">Nombre</th>
+              <th style="padding: 10px; width: 140px;">Tipo</th>
+              <th style="padding: 10px; width: 220px;">Foto (Opcional)</th>
+              <th style="padding: 10px; width: 60px; text-align: center;">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="stickers-rows">
+            <!-- Filas inyectadas dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button type="button" id="add-row-btn" style="padding: 10px 16px; background: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+          ➕ Otra lámina
+        </button>
+        <button type="submit" style="padding: 10px 20px; background: #0f172a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+          Guardar Láminas
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Lista de Láminas Creadas -->
+  <section>
+    <h2 style="margin-bottom: 16px;">Láminas del Álbum ({stickers.length})</h2>
+    {stickers.length === 0 ? (
+      <p style="color: #64748b; background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        Este álbum aún no tiene láminas registradas.
+      </p>
+    ) : (
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;">
+        {stickers.map((s) => (
+          <StickerCard
+            number={s.number}
+            name={s.name}
+            type={s.sticker_type}
+            image={s.image ? `${backendUrl}${s.image}` : undefined}
+          />
+        ))}
+      </div>
+    )}
+  </section>
+
+  <!-- Script Interactivo del Widget -->
+  <script>
+    const container = document.getElementById('stickers-rows');
+    const addBtn = document.getElementById('add-row-btn');
+    let rowCount = 0;
+
+    function addRow() {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid #f1f5f9';
+      const index = rowCount;
+
+      tr.innerHTML = `
+        <td style="padding: 8px;">
+          <input type="number" name="number_${index}" value="${index + 1}" min="1" required style="width: 100%; padding: 6px; box-sizing: border-box;" />
+        </td>
+        <td style="padding: 8px;">
+          <input type="text" name="name_${index}" placeholder="Ej: Escudo Nacional" required style="width: 100%; padding: 6px; box-sizing: border-box;" />
+        </td>
+        <td style="padding: 8px;">
+          <select name="type_${index}" style="width: 100%; padding: 6px; box-sizing: border-box;">
+            <option value="normal">Normal</option>
+            <option value="holografica">Holográfica</option>
+            <option value="especial">Especial</option>
+          </select>
+        </td>
+        <td style="padding: 8px;">
+          <input type="file" name="image_${index}" accept="image/*" style="font-size: 12px; width: 100%;" />
+        </td>
+        <td style="padding: 8px; text-align: center;">
+          <button type="button" class="remove-btn" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;">❌</button>
+        </td>
+      `;
+
+      tr.querySelector('.remove-btn')?.addEventListener('click', () => {
+        tr.remove();
+        reindexRows();
+      });
+
+      container?.appendChild(tr);
+      rowCount++;
+    }
+
+    function reindexRows() {
+      const rows = container?.querySelectorAll('tr');
+      rows?.forEach((row, i) => {
+        row.querySelector('input[name^="number_"]')?.setAttribute('name', `number_${i}`);
+        row.querySelector('input[name^="name_"]')?.setAttribute('name', `name_${i}`);
+        row.querySelector('select[name^="type_"]')?.setAttribute('name', `type_${i}`);
+        row.querySelector('input[name^="image_"]')?.setAttribute('name', `image_${i}`);
+      });
+      rowCount = rows ? rows.length : 0;
+    }
+
+    if (container && container.children.length === 0) {
+      addRow();
+    }
+
+    addBtn?.addEventListener('click', addRow);
+  </script>
+</Layout>
