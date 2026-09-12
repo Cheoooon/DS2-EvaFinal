@@ -5,7 +5,7 @@ Plataforma web estilo "Cromos de Steam" para la gestión, seguimiento y publicac
 ## 🛠️ Stack Tecnológico
 
 - **Backend:** NestJS (v10+), TypeScript, TypeORM, **MariaDB**, JWT, Bcrypt, **Multer** (para la gestión local de archivos e imágenes).
-- **Frontend:** Astro (v4+) en modo SSR. Rutas API nativas de Astro actuando como **BFF (Backend for Frontend)**. Componentes y scripts en **Vanilla JavaScript** para la interactividad en tiempo real del "Libro", sin depender de frameworks adicionales.
+- **Frontend:** Astro (v4+) en modo SSR. Rutas API nativas de Astro actuando como **BFF (Backend for Frontend)**. Componentes y scripts en **Vanilla JavaScript** para la interactividad en tiempo real, sin depender de frameworks adicionales.
 - **Almacenamiento:** MariaDB para el modelo relacional; sistema de archivos local (`/uploads`) para imágenes de portadas y láminas.
 
 ## 📂 Estructura del Proyecto
@@ -31,7 +31,7 @@ stickers-platform/
 ## 🚀 Inicio Rápido (Desarrollo Local)
 
 ### Prerrequisitos
-- Node.js >= 18.x
+- Node.js >= 22.x
 - Gestor de paquetes `pnpm` (o `npm`)
 - Instancia de **MariaDB** en ejecución
 
@@ -48,7 +48,7 @@ pnpm run start:dev
 ```bash
 cd frontend
 pnpm install
-# Crear el archivo .env y configurar BACKEND_URL=http://localhost:3000
+# Crear el archivo .env y configurar
 cp .env.example .env
 pnpm run dev
 ```
@@ -66,10 +66,10 @@ El sistema maneja un control estricto de autorizaciones, protegiendo contra vuln
 - **Panel del Coleccionista (Follower):** 
   - Explora el dashboard buscando álbumes públicos de la comunidad.
   - Puede "Comenzar Colección" para hacer seguimiento de un álbum.
-  - Interactúa en tiempo real con su "Libro" usando botones (`+`, `-`) para marcar láminas obtenidas, faltantes o gestionar repetidas.
+  - Interactúa en tiempo real con su "Colección" usando botones (`+`, `-`) para marcar láminas obtenidas, faltantes o gestionar repetidas.
   - Manejo seguro de colecciones "fantasma" (si un creador borra o privatiza un álbum que el usuario estaba coleccionando).
 
 ## ⚡ Decisiones de Arquitectura
 
 - **BFF (Backend for Frontend):** El frontend en Astro procesa los formularios (`multipart/form-data`) a través de sus propias rutas `/api/*`. Astro extrae la cookie JWT, ensambla la petición y se comunica de forma segura con NestJS en el servidor, manteniendo el token invisible para el cliente.
-- **Interactividad Ligera:** En lugar de cargar librerías como React o Vue, el "Libro de Colección" utiliza JavaScript puro manipulando el DOM para actualizar estadísticas (Faltantes, Obtenidas, Repetidas) en tiempo real, ofreciendo una carga extremadamente rápida.
+- **Interactividad Ligera:** En lugar de cargar librerías como React o Vue, se utiliza JavaScript puro manipulando el DOM para actualizar estadísticas (Faltantes, Obtenidas, Repetidas) en tiempo real, ofreciendo una carga extremadamente rápida.
