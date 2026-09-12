@@ -80,7 +80,6 @@ const followedIds = new Set(followedAlbums.map(a => a.id));
     <div class="flex items-center justify-between gap-4 mb-6">
       <div>
         <h2 class="text-xl font-bold text-slate-100 tracking-tight">Colecciones Disponibles</h2>
-        <p class="text-xs text-slate-400">Haz clic en el título de cualquier álbum para ver su vista pública</p>
       </div>
       <span id="albums-count" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
         {communityAlbums.length} {communityAlbums.length === 1 ? 'álbum' : 'álbumes'}
