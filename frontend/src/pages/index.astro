@@ -16,40 +16,89 @@ try {
 
 const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3000';
 
-// Hacemos ambas peticiones en paralelo: Comunidad y Seguídos
-const [communityRes, followedRes] = await Promise.all([
-  fetch(`${backendUrl}/albums/community`, { headers: { Authorization: `Bearer ${token}` } }),
-  fetch(`${backendUrl}/collection/my-followed`, { headers: { Authorization: `Bearer ${token}` } })
-]);
+// En el Dashboard cargamos únicamente las colecciones activas del usuario para mantener la vista limpia y rápida
+const followedRes = await fetch(`${backendUrl}/collection/my-followed`, {
+  headers: { Authorization: `Bearer ${token}` }
+});
 
-const communityAlbums: any[] = communityRes.ok ? await communityRes.json() : [];
 const followedAlbums: any[] = followedRes.ok ? await followedRes.json() : [];
-
-// Filtramos de la comunidad aquellos que ya estamos siguiendo para no repetirlos visualmente
-const followedIds = followedAlbums.map(a => a.id);
-const discoverAlbums = communityAlbums.filter(a => !followedIds.includes(a.id));
 ---
 
-<Layout title="Dashboard" user={user}>
-  <section style="background: white; padding: 24px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
-    <div>
-      <h2 style="margin: 0 0 8px 0;">Panel de Creador</h2>
-      <p style="margin: 0; color: #64748b;">Administra tus álbumes, sube láminas y compártelos.</p>
+<Layout title="Dashboard · Mis Colecciones" user={user}>
+  <!-- Banner de Bienvenida y Accesos Rápidos -->
+  <section class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-slate-950/10 mb-10 border border-slate-800">
+    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div class="max-w-xl">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-400/30 mb-3">
+          <span>✨</span> Bienvenido a Sticker Collect
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
+          Gestiona tus colecciones y abre tus libros de láminas
+        </h1>
+        <p class="mt-2 text-sm text-slate-300 leading-relaxed">
+          Haz seguimiento de tus cromos en tiempo real, marca repetidas y descubre nuevas colecciones de la comunidad.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3 flex-wrap">
+        <a
+          href="/community"
+          class="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-md shadow-sky-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+        >
+          <span>🌐</span>
+          <span>Explorar Comunidad</span>
+        </a>
+        <a
+          href="/my-albums"
+          class="inline-flex items-center gap-2 px-4 py-3 rounded-xl font-bold text-sm bg-slate-800/90 hover:bg-slate-800 text-white border border-slate-700 hover:scale-[1.02] active:scale-[0.98] transition-all"
+        >
+          <span>⚙️</span>
+          <span>Panel Creador</span>
+        </a>
+      </div>
     </div>
-    <a href="/my-albums" style="padding: 10px 16px; background: #0f172a; color: white; border-radius: 6px; text-decoration: none; font-weight: bold;">
-      ⚙️ Mis Álbumes Creados
-    </a>
+
+    <!-- Fondo decorativo sutil -->
+    <div class="absolute -right-12 -bottom-12 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
   </section>
 
-<!-- Álbumes que estoy coleccionando -->
-  <section style="margin-bottom: 40px;">
-    <h2 style="margin-bottom: 16px;">📚 Mis Colecciones Activas</h2>
+  <!-- Sección Principal: Álbumes que estoy coleccionando -->
+  <section class="mb-12">
+    <div class="flex items-center justify-between gap-4 mb-6">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-emerald-900/60 text-emerald-400 flex items-center justify-center font-bold text-lg border border-emerald-800/60">
+          📚
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-slate-100 tracking-tight">Mis Colecciones Activas</h2>
+          <p class="text-xs sm:text-sm text-slate-400">Haz clic en "Abrir Libro" para gestionar tus láminas obtenidas</p>
+        </div>
+      </div>
+      <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+        {followedAlbums.length} {followedAlbums.length === 1 ? 'colección' : 'colecciones'}
+      </span>
+    </div>
+
+
     {followedAlbums.length === 0 ? (
-      <p style="color: #64748b; background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
-        Aún no has empezado ninguna colección. ¡Explora la comunidad abajo!
-      </p>
+      <div class="bg-slate-900 rounded-3xl border border-dashed border-slate-700 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xs">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-indigo-900/40 border border-indigo-800/60 text-indigo-400 flex items-center justify-center text-3xl mb-4">
+          📖
+        </div>
+        <h3 class="font-bold text-slate-100 text-base mb-1">Aún no tienes colecciones activas</h3>
+        <p class="text-xs sm:text-sm text-slate-400 mb-6 leading-relaxed">
+          Explora los álbumes públicos creados por la comunidad y comienza a coleccionar tus primeros cromos.
+        </p>
+        <a
+          href="/community"
+          class="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-sm shadow-sky-500/20 transition-all"
+        >
+          <span>🌐</span>
+          <span>Explorar Catálogo de la Comunidad</span>
+        </a>
+      </div>
     ) : (
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {followedAlbums.map((album) => (
           <AlbumCard
             id={album.id}
@@ -57,33 +106,34 @@ const discoverAlbums = communityAlbums.filter(a => !followedIds.includes(a.id));
             description={album.description}
             isShared={album.is_shared}
             coverImage={album.cover_image ? `${backendUrl}${album.cover_image}` : undefined}
-            actionUrl={`/my-collection/${album.id}`}
-            actionText="📖 Abrir Libro"
+            actionUrl={`/albums/${album.id}`}
+            actionText="Abrir Álbum"
           />
         ))}
       </div>
     )}
   </section>
 
-  <!-- Explorar nuevos álbumes -->
-  <section>
-    <h2 style="margin-bottom: 16px;">🌐 Descubrir en la Comunidad</h2>
-    {discoverAlbums.length === 0 ? (
-      <p style="color: #64748b;">No hay colecciones nuevas por descubrir en este momento.</p>
-    ) : (
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; opacity: 0.9;">
-        {discoverAlbums.map((album) => (
-          <AlbumCard
-            id={album.id}
-            name={album.name}
-            description={album.description}
-            isShared={album.is_shared}
-            coverImage={album.cover_image ? `${backendUrl}${album.cover_image}` : undefined}
-            actionUrl={`/albums/${album.id}`}
-            actionText="Ver Álbum >"
-          />
-        ))}
+  <!-- Tarjeta Banner para Descubrir la Comunidad sin sobrecargar el Dashboard -->
+  <section class="bg-gradient-to-r from-sky-950/60 via-indigo-950/40 to-slate-900 rounded-3xl p-6 sm:p-8 border border-sky-900/40 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl shadow-sky-950/20">
+    <div class="flex items-center gap-5">
+      <div class="w-14 h-14 rounded-2xl bg-slate-800 text-sky-400 border border-sky-800/50 flex items-center justify-center text-2xl shadow-sm flex-shrink-0">
+        🌐
       </div>
-    )}
+      <div>
+        <h3 class="text-lg font-bold text-slate-100">¿Buscas nuevas láminas?</h3>
+        <p class="text-xs sm:text-sm text-slate-400 mt-0.5 max-w-xl">
+          Descubre el catálogo público de la comunidad en su propia sección para encontrar álbumes y nuevos retos de colección.
+        </p>
+      </div>
+    </div>
+
+    <a
+      href="/community"
+      class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs shadow-md shadow-sky-500/20 transition-all flex-shrink-0 w-full sm:w-auto"
+    >
+      <span>Ver Álbumes de la Comunidad</span>
+      <span>&rarr;</span>
+    </a>
   </section>
 </Layout>

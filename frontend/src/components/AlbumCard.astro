@@ -5,11 +5,10 @@ interface Props {
   description?: string;
   isShared: boolean;
   coverImage?: string;
-  actionUrl?: string;  // Nueva propiedad opcional para el link
-  actionText?: string; // Nueva propiedad opcional para el texto del botón
+  actionUrl?: string;
+  actionText?: string;
 }
 
-// Valores por defecto si no se los pasamos
 const { 
   id, 
   name, 
@@ -17,31 +16,113 @@ const {
   isShared, 
   coverImage, 
   actionUrl = `/albums/${id}`, 
-  actionText = 'Ver Detalles >' 
+  actionText = 'Ver Detalles' 
 } = Astro.props;
+
+const albumDetailUrl = `/albums/${id}`;
 ---
 
-<article style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; background: white; display: flex; flex-direction: column; justify-content: space-between;">
+<!-- Tarjeta de Álbum con estética de Archivador / Binder de Coleccionista -->
+<article class="group relative bg-slate-900 rounded-2xl border border-slate-700/80 shadow-[4px_4px_0px_0px_rgba(15,23,42,0.7),8px_8px_0px_0px_rgba(15,23,42,0.5)] hover:shadow-[6px_6px_0px_0px_rgba(14,165,233,0.25),12px_12px_0px_0px_rgba(15,23,42,0.6)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden">
   <div>
-    {coverImage ? (
-      <img src={coverImage} alt={name} style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 12px;" />
-    ) : (
-      <div style="width: 100%; height: 140px; background: #e2e8f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: bold; margin-bottom: 12px;">
-        📘 Sin Portada
+    <!-- Tapa del Álbum / Carpeta con Hojas y Láminas Asomándose -->
+    <div class="relative w-full h-48 bg-slate-950 overflow-hidden border-b border-slate-800/80">
+      <!-- Portada como cubierta de binder (Enlaza SIEMPRE a /albums/${id}) -->
+      <a
+        href={albumDetailUrl}
+        class="block w-full h-full relative focus:outline-none overflow-hidden"
+        title={`Ver álbum ${name}`}
+      >
+        {coverImage ? (
+          <img
+            src={coverImage}
+            alt={name}
+            loading="lazy"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+          />
+        ) : (
+          <div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-slate-400 p-4 text-center">
+            <span class="text-4xl mb-1 filter grayscale opacity-40 group-hover:scale-110 transition-transform duration-300">📖</span>
+            <span class="text-[10px] uppercase font-black tracking-widest text-slate-400">Álbum Coleccionador</span>
+          </div>
+        )}
+
+        <!-- Gradiente de sombra de encuadernación -->
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20 pointer-events-none"></div>
+
+        <!-- Lomo del Álbum / Encuadernación con Remaches Metálicos -->
+        <div class="absolute left-0 top-0 bottom-0 w-3.5 bg-gradient-to-r from-slate-950 via-slate-800 to-transparent border-r border-white/20 z-20 flex flex-col justify-around items-center py-5 pointer-events-none">
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-400/90 border border-black/50 shadow-xs"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-400/90 border border-black/50 shadow-xs"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-400/90 border border-black/50 shadow-xs"></span>
+        </div>
+
+        <!-- Mini Láminas Asomándose (Indica visualmente que este álbum CONTIENE láminas) -->
+        <div class="absolute top-2 right-2 flex items-center pointer-events-none z-20">
+          <!-- Mini lámina 1 (Holográfica lila asomándose) -->
+          <div class="w-7 h-10 rounded-md bg-gradient-to-tr from-purple-600 via-pink-500 to-indigo-400 border-2 border-white shadow-md transform -rotate-12 -translate-x-2 translate-y-0.5 group-hover:-translate-y-1.5 group-hover:-rotate-16 transition-all duration-300 flex items-center justify-center text-[9px] text-white">
+            ✨
+          </div>
+          <!-- Mini lámina 2 (Especial dorada asomándose) -->
+          <div class="w-7 h-10 rounded-md bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-500 border-2 border-white shadow-md transform rotate-6 translate-y-0 group-hover:-translate-y-2 group-hover:rotate-12 transition-all duration-300 flex items-center justify-center text-[9px] text-amber-950 font-black">
+            ⭐
+          </div>
+        </div>
+
+        <!-- Badge Inferior: Coleccionador -->
+        <div class="absolute bottom-2.5 left-6 z-20 pointer-events-none">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-slate-950/85 text-white backdrop-blur-md border border-white/20 shadow-sm">
+            <span>📚</span> Álbum
+          </span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Contenido y Metadatos -->
+    <div class="p-5">
+      <div class="flex items-center justify-between gap-2 mb-2">
+        <span
+          class={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+            isShared
+              ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800/60'
+              : 'bg-slate-800 text-slate-400 border border-slate-700'
+          }`}
+        >
+          <span class={`w-1.5 h-1.5 rounded-full ${isShared ? 'bg-emerald-400' : 'bg-slate-500'}`}></span>
+          {isShared ? 'Comunidad' : 'Privado'}
+        </span>
+
+        <span class="text-[11px] font-bold text-slate-500">
+          ID #{id}
+        </span>
       </div>
-    )}
-    <h3 style="margin: 0 0 8px 0;">{name}</h3>
-    <p style="color: #64748b; font-size: 14px; margin-bottom: 12px;">{description || 'Sin descripción'}</p>
+
+      <!-- Título del Álbum (Enlaza SIEMPRE a /albums/${id}) -->
+      <a
+        href={albumDetailUrl}
+        class="block group/title focus:outline-none"
+        title={`Ver detalle de ${name}`}
+      >
+        <h3 class="font-black text-slate-100 text-lg leading-snug group-hover/title:text-sky-400 transition-colors line-clamp-1">
+          {name}
+        </h3>
+      </a>
+
+      <p class="mt-2 text-xs sm:text-sm text-slate-400 line-clamp-2 leading-relaxed">
+        {description || 'Álbum coleccionador de láminas y cromos.'}
+      </p>
+    </div>
   </div>
-  
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-    <span style={`font-size: 12px; padding: 2px 8px; border-radius: 4px; background: ${isShared ? '#dcfce7' : '#f1f5f9'}; color: ${isShared ? '#166534' : '#475569'};`}>
-      {isShared ? 'Público' : 'Privado'}
-    </span>
-    
-    <!-- Aquí usamos las nuevas propiedades -->
-    <a href={actionUrl} style="color: #0284c7; text-decoration: none; font-weight: bold; font-size: 14px;">
-      {actionText}
+
+  <!-- Barra Inferior de Acción y Efecto de Álbum -->
+  <div class="px-5 pb-5 pt-3 flex items-center justify-end border-t border-slate-800 bg-slate-900/50">
+
+    <a
+      href={actionUrl}
+      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-extrabold text-slate-100 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 border border-slate-700 hover:border-sky-400 shadow-xs hover:shadow-md hover:shadow-sky-500/20 transition-all duration-200 group-hover:scale-105 active:scale-95"
+    >
+      <span>{actionText}</span>
+      <span class="text-sm transition-transform group-hover:translate-x-1">&rarr;</span>
     </a>
   </div>
-</article>
+</article> 

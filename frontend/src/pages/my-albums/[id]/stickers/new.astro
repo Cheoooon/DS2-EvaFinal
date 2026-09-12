@@ -31,48 +31,79 @@ if (album.owner?.id !== user?.sub) return Astro.redirect('/');
 const errorParam = Astro.url.searchParams.get('error');
 ---
 
-<Layout title={`Cargar Láminas - ${album.name}`} user={user}>
-  <div style="margin-bottom: 20px;">
-    <a href={`/my-albums/${id}`} style="color: #0284c7; text-decoration: none;">&larr; Volver a {album.name}</a>
+<Layout title={`Cargar Láminas · ${album.name}`} user={user}>
+  <div class="mb-6">
+    <a href={`/my-albums/${id}`} class="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-400 hover:text-white transition-colors">
+      <span>&larr;</span>
+      <span>Volver a {album.name}</span>
+    </a>
   </div>
 
-  <div style="background: white; padding: 24px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 30px;">
-    <h1 style="margin-top: 0; margin-bottom: 8px;">➕ Agregar Láminas a {album.name}</h1>
-    <p style="color: #64748b; margin-top: 0; margin-bottom: 20px;">
-      Puedes añadir una o múltiples láminas a la vez. Cada lámina puede incluir su tipo y una imagen opcional.
-    </p>
+  <div class="bg-slate-900/90 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl shadow-black/50 mb-10">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-800">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+          ➕ Cargar Láminas a {album.name}
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">
+          Añade una o varias láminas a la vez indicando su número, nombre, tipo e imagen.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        id="add-row-btn"
+        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 transition-all cursor-pointer self-start sm:self-auto"
+      >
+        <span>➕</span>
+        <span>Añadir otra fila</span>
+      </button>
+    </div>
 
     {errorParam === 'empty_data' && (
-      <div style="background: #fef2f2; color: #991b1b; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
-        Debes completar al menos una lámina válida antes de guardar.
+      <div class="mb-6 p-4 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-3">
+        <span class="text-lg">⚠️</span>
+        <span>Debes completar al menos una lámina con número y nombre válidos antes de guardar.</span>
       </div>
     )}
 
     <form method="POST" action={`/api/albums/${id}/stickers`} enctype="multipart/form-data">
-      <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-          <thead>
-            <tr style="text-align: left; background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-              <th style="padding: 10px; width: 80px;">N°</th>
-              <th style="padding: 10px;">Nombre</th>
-              <th style="padding: 10px; width: 140px;">Tipo</th>
-              <th style="padding: 10px; width: 220px;">Foto (Opcional)</th>
-              <th style="padding: 10px; width: 60px; text-align: center;">Acción</th>
+      <div class="overflow-x-auto rounded-2xl border border-slate-800 mb-6">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-950/80 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
+            <tr>
+              <th class="px-4 py-3.5 w-24">N°</th>
+              <th class="px-4 py-3.5 min-w-[200px]">Nombre de Lámina</th>
+              <th class="px-4 py-3.5 w-44">Tipo</th>
+              <th class="px-4 py-3.5 min-w-[220px]">Foto (Opcional)</th>
+              <th class="px-4 py-3.5 w-16 text-center">Acción</th>
             </tr>
           </thead>
-          <tbody id="stickers-rows">
+          <tbody id="stickers-rows" class="divide-y divide-slate-800 bg-slate-900/50">
             <!-- Filas inyectadas dinámicamente -->
           </tbody>
         </table>
       </div>
 
-      <div style="display: flex; gap: 12px; justify-content: flex-end;">
-        <button type="button" id="add-row-btn" style="padding: 10px 16px; background: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-          ➕ Añadir otra fila
-        </button>
-        <button type="submit" style="padding: 10px 20px; background: #0f172a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-          Guardar Láminas
-        </button>
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+        <span class="text-xs text-slate-400">
+          Tip: Puedes crear secuencias rápidas agregando más filas consecutivas.
+        </span>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <a
+            href={`/my-albums/${id}`}
+            class="w-full sm:w-auto px-5 py-3 rounded-xl border border-slate-700/80 text-slate-300 text-sm font-semibold hover:bg-slate-800 hover:text-white text-center transition-colors"
+          >
+            Cancelar
+          </a>
+          <button
+            type="submit"
+            class="w-full sm:w-auto px-6 py-3 rounded-xl bg-sky-400 hover:bg-sky-300 text-slate-950 font-black text-sm shadow-lg shadow-sky-500/20 transition-all cursor-pointer text-center hover:scale-[1.01] active:scale-[0.99]"
+          >
+            Guardar Láminas
+          </button>
+        </div>
       </div>
     </form>
   </div>
@@ -84,28 +115,55 @@ const errorParam = Astro.url.searchParams.get('error');
 
     function addRow() {
       const tr = document.createElement('tr');
-      tr.style.borderBottom = '1px solid #f1f5f9';
+      tr.className = 'hover:bg-slate-800/40 transition-colors';
       const index = rowCount;
 
       tr.innerHTML = `
-        <td style="padding: 8px;">
-          <input type="number" name="number_${index}" value="${index + 1}" min="1" required style="width: 100%; padding: 6px; box-sizing: border-box;" />
+        <td class="px-4 py-3">
+          <input
+            type="number"
+            name="number_${index}"
+            value="${index + 1}"
+            min="1"
+            required
+            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm font-bold focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+          />
         </td>
-        <td style="padding: 8px;">
-          <input type="text" name="name_${index}" placeholder="Ej: Escudo Nacional" required style="width: 100%; padding: 6px; box-sizing: border-box;" />
+        <td class="px-4 py-3">
+          <input
+            type="text"
+            name="name_${index}"
+            placeholder="Ej: Escudo Nacional, Jugador Estrella..."
+            required
+            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+          />
         </td>
-        <td style="padding: 8px;">
-          <select name="type_${index}" style="width: 100%; padding: 6px; box-sizing: border-box;">
-            <option value="normal">Normal</option>
-            <option value="holografica">Holográfica</option>
-            <option value="especial">Especial</option>
+        <td class="px-4 py-3">
+          <select
+            name="type_${index}"
+            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+          >
+            <option value="normal" class="bg-slate-900 text-white">Normal</option>
+            <option value="holografica" class="bg-slate-900 text-white">✨ Holográfica</option>
+            <option value="especial" class="bg-slate-900 text-white">⭐ Especial</option>
           </select>
         </td>
-        <td style="padding: 8px;">
-          <input type="file" name="image_${index}" accept="image/*" style="font-size: 12px; width: 100%;" />
+        <td class="px-4 py-3">
+          <input
+            type="file"
+            name="image_${index}"
+            accept="image/*"
+            class="w-full text-xs text-slate-400 file:mr-2.5 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer"
+          />
         </td>
-        <td style="padding: 8px; text-align: center;">
-          <button type="button" class="remove-btn" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;">❌</button>
+        <td class="px-4 py-3 text-center">
+          <button
+            type="button"
+            class="remove-btn w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 transition-colors inline-flex items-center justify-center text-xs font-bold cursor-pointer"
+            title="Eliminar fila"
+          >
+            ✕
+          </button>
         </td>
       `;
 

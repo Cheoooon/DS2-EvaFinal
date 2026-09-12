@@ -30,45 +30,126 @@ if (sticker.album?.owner?.id !== user?.sub) return Astro.redirect('/');
 ---
 
 <Layout title={`Editar Lámina #${sticker.number}`} user={user}>
-  <div style="margin-bottom: 20px;">
-    <a href={`/my-albums/${id}`} style="color: #0284c7; text-decoration: none;">&larr; Volver al Álbum</a>
+  <div class="mb-6">
+    <a href={`/my-albums/${id}`} class="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-400 hover:text-white transition-colors">
+      <span>&larr;</span>
+      <span>Volver al Álbum</span>
+    </a>
   </div>
 
-  <div style="max-width: 450px; margin: 0 auto; background: white; padding: 24px; border-radius: 8px; border: 1px solid #cbd5e1;">
-    <h2>Editar Lámina #{sticker.number}</h2>
+  <div class="max-w-xl mx-auto space-y-6">
+    <!-- Formulario Principal -->
+    <div class="bg-slate-900/90 backdrop-blur-md rounded-3xl p-8 sm:p-10 border border-slate-800 shadow-2xl shadow-black/50">
+      <div class="flex items-center gap-3 mb-6 pb-6 border-b border-slate-800">
+        <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-2xl border border-indigo-500/20">
+          🎴
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+            Editar Lámina #{sticker.number}
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-400">Modifica los detalles, rareza o ilustración de esta lámina</p>
+        </div>
+      </div>
 
-    <form method="POST" action={`/api/albums/${id}/stickers/${stickerId}/update`} enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 16px;">
-      <div>
-        <label style="display: block; font-weight: bold; margin-bottom: 4px;">Número:</label>
-        <input type="number" name="number" value={sticker.number} required style="width: 100%; padding: 8px; box-sizing: border-box;" />
-      </div>
-      <div>
-        <label style="display: block; font-weight: bold; margin-bottom: 4px;">Nombre:</label>
-        <input type="text" name="name" value={sticker.name} required style="width: 100%; padding: 8px; box-sizing: border-box;" />
-      </div>
-      <div>
-        <label style="display: block; font-weight: bold; margin-bottom: 4px;">Tipo:</label>
-        <select name="sticker_type" style="width: 100%; padding: 8px; box-sizing: border-box;">
-          <option value="normal" selected={sticker.sticker_type === 'normal'}>Normal</option>
-          <option value="holografica" selected={sticker.sticker_type === 'holografica'}>Holográfica</option>
-          <option value="especial" selected={sticker.sticker_type === 'especial'}>Especial</option>
-        </select>
-      </div>
-      <div>
-        <label style="display: block; font-weight: bold; margin-bottom: 4px;">Cambiar Imagen:</label>
-        <input type="file" name="image" accept="image/*" style="width: 100%;" />
-      </div>
-      <button type="submit" style="padding: 10px; background: #0f172a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-        Actualizar Lámina
-      </button>
-    </form>
+      <form method="POST" action={`/api/albums/${id}/stickers/${stickerId}/update`} enctype="multipart/form-data" class="space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="sm:col-span-1">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+              Número <span class="text-rose-400">*</span>
+            </label>
+            <input
+              type="number"
+              name="number"
+              value={sticker.number}
+              required
+              class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white font-bold focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all text-sm"
+            />
+          </div>
 
-    <hr style="margin: 24px 0; border: 0; border-top: 1px solid #e2e8f0;" />
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+              Nombre de la Lámina <span class="text-rose-400">*</span>
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={sticker.name}
+              required
+              class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all text-sm"
+            />
+          </div>
+        </div>
 
-    <form method="POST" action={`/api/albums/${id}/stickers/${stickerId}/delete`} onsubmit="return confirm('¿Eliminar esta lámina?');">
-      <button type="submit" style="width: 100%; padding: 10px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-        🗑️ Eliminar Lámina
-      </button>
-    </form>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+            Tipo / Rareza
+          </label>
+          <select
+            name="sticker_type"
+            class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all text-sm"
+          >
+            <option value="normal" selected={sticker.sticker_type === 'normal'} class="bg-slate-900 text-white">Normal</option>
+            <option value="holografica" selected={sticker.sticker_type === 'holografica'} class="bg-slate-900 text-white">✨ Holográfica</option>
+            <option value="especial" selected={sticker.sticker_type === 'especial'} class="bg-slate-900 text-white">⭐ Especial</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+            Foto / Ilustración <span class="text-xs font-normal text-slate-500 lowercase">(opcional)</span>
+          </label>
+          {sticker.image && (
+            <div class="mb-3 flex items-center gap-3 p-2 bg-slate-950 rounded-xl border border-slate-800">
+              <img src={`${backendUrl}${sticker.image}`} alt={sticker.name} class="w-14 h-14 object-contain rounded-lg bg-slate-900 border border-slate-800" />
+              <span class="text-xs text-slate-400">Imagen actual de la lámina. Sube una nueva para reemplazarla.</span>
+            </div>
+          )}
+          <input
+            type="file"
+            name="image"
+            accept="image/*"
+            class="w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer border border-dashed border-slate-800 rounded-xl p-2 bg-slate-950/50"
+          />
+        </div>
+
+        <div class="pt-2">
+          <button
+            type="submit"
+            class="w-full py-3.5 px-4 rounded-xl bg-sky-400 hover:bg-sky-300 text-slate-950 font-black text-sm shadow-lg shadow-sky-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
+          >
+            Guardar Cambios de la Lámina
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Zona Peligrosa / Eliminar Lámina -->
+    <div class="bg-rose-950/20 rounded-3xl p-6 border border-rose-900/40">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 class="text-sm font-bold text-rose-300">Zona de Peligro</h3>
+          <p class="text-xs text-rose-400/80 mt-0.5">
+            Eliminar esta lámina individual del álbum.
+          </p>
+        </div>
+
+        <form
+          method="POST"
+          action={`/api/albums/${id}/stickers/${stickerId}/delete`}
+          data-confirm={`¿Estás seguro de que deseas eliminar la lámina #${sticker.number} (${sticker.name})?`}
+          data-confirm-title="Eliminar Lámina"
+          data-confirm-btn="Sí, eliminar lámina"
+          class="flex-shrink-0"
+        >
+          <button
+            type="submit"
+            class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-900/60 hover:bg-rose-800 text-rose-200 border border-rose-700/60 font-bold text-xs shadow-sm transition-all cursor-pointer"
+          >
+            🗑️ Eliminar Lámina
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 </Layout>

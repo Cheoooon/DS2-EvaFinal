@@ -20,6 +20,8 @@
     "esbuild": true
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10"
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "tailwindcss": "^4.3.3"
   }
 }

@@ -1,0 +1,166 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AlbumCard from '../components/AlbumCard.astro';
+import jwt from 'jsonwebtoken';
+
+interface UserPayload { email: string; sub: number; }
+const token = Astro.cookies.get('jwt')?.value;
+if (!token) return Astro.redirect('/login');
+
+let user: UserPayload | null = null;
+try {
+  user = jwt.decode(token) as unknown as UserPayload;
+} catch {
+  return Astro.redirect('/login');
+}
+
+const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3000';
+
+const [communityRes, followedRes] = await Promise.all([
+  fetch(`${backendUrl}/albums/community`, { headers: { Authorization: `Bearer ${token}` } }),
+  fetch(`${backendUrl}/collection/my-followed`, { headers: { Authorization: `Bearer ${token}` } })
+]);
+
+const communityAlbums: any[] = communityRes.ok ? await communityRes.json() : [];
+const followedAlbums: any[] = followedRes.ok ? await followedRes.json() : [];
+const followedIds = new Set(followedAlbums.map(a => a.id));
+---
+
+<Layout title="Comunidad · Explorar Álbumes" user={user}>
+  <!-- Barra de Navegación y Breadcrumb -->
+  <div class="flex items-center justify-between gap-4 mb-6">
+    <a
+      href="/"
+      class="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-100 transition-colors"
+    >
+      <span>&larr;</span>
+      <span>Volver al Dashboard</span>
+    </a>
+
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-900/50 text-sky-300 border border-sky-800/60">
+      <span>🌐</span> Catálogo de la Comunidad
+    </span>
+  </div>
+
+  <!-- Hero Header de la Comunidad -->
+  <section class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl mb-10">
+    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div class="max-w-2xl">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-400/30 mb-3">
+          <span>🌐</span> Álbumes Públicos
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight">
+          Explora y colecciona los álbumes de la comunidad
+        </h1>
+        <p class="mt-2 text-sm text-slate-300 leading-relaxed">
+          Descubre colecciones temáticas creadas por otros usuarios, explora sus láminas y agrégalas a tu inventario personal.
+        </p>
+      </div>
+
+      <!-- Buscador en Tiempo Real -->
+      <div class="w-full md:w-72 flex-shrink-0">
+        <div class="relative">
+          <span class="absolute inset-y-0 left-3 flex items-center text-slate-400 text-sm pointer-events-none">🔍</span>
+          <input
+            type="text"
+            id="community-search"
+            placeholder="Buscar por nombre..."
+            class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder:text-slate-400 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-slate-800 transition-all"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Iluminación sutil de fondo -->
+    <div class="absolute -right-12 -bottom-12 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+  </section>
+
+  <!-- Grilla de Álbumes de la Comunidad -->
+  <section>
+    <div class="flex items-center justify-between gap-4 mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-slate-100 tracking-tight">Colecciones Disponibles</h2>
+        <p class="text-xs text-slate-400">Haz clic en el título de cualquier álbum para ver su vista pública</p>
+      </div>
+      <span id="albums-count" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+        {communityAlbums.length} {communityAlbums.length === 1 ? 'álbum' : 'álbumes'}
+      </span>
+    </div>
+
+    {communityAlbums.length === 0 ? (
+      <div class="bg-slate-900 rounded-3xl border border-dashed border-slate-700 p-12 text-center text-slate-400 max-w-lg mx-auto">
+        <span class="text-4xl block mb-2 opacity-50">🌐</span>
+        <h3 class="font-bold text-slate-100 text-base mb-1">No hay álbumes públicos en la comunidad</h3>
+        <p class="text-xs text-slate-400">Sé el primero en compartir un álbum para que otros coleccionistas puedan descubrirlo.</p>
+        <div class="mt-5">
+          <a
+            href="/my-albums/new"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-colors shadow-md shadow-sky-500/20"
+          >
+            <span>➕</span>
+            <span>Crear Álbum Público</span>
+          </a>
+        </div>
+      </div>
+    ) : (
+      <div id="community-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {communityAlbums.map((album) => {
+          const isFollowed = followedIds.has(album.id);
+          return (
+            <div class="community-card-item" data-name={album.name.toLowerCase()}>
+              <AlbumCard
+                id={album.id}
+                name={album.name}
+                description={album.description}
+                isShared={album.is_shared}
+                coverImage={album.cover_image ? `${backendUrl}${album.cover_image}` : undefined}
+                actionUrl={`/albums/${album.id}`}
+                actionText={isFollowed ? 'Abrir Álbum' : 'Ver Álbum'}
+              />
+            </div>
+          );
+        })}
+      </div>
+    )}
+
+    <div id="no-search-results" class="hidden bg-slate-900 rounded-3xl border border-dashed border-slate-700 p-12 text-center text-slate-400 max-w-lg mx-auto mt-4">
+      <span class="text-3xl block mb-2">🔍</span>
+      <p class="text-sm font-semibold text-slate-300">No se encontraron álbumes que coincidan con la búsqueda.</p>
+    </div>
+  </section>
+
+  <!-- Script de Filtro en Vivo -->
+  <script>
+    const searchInput = document.getElementById('community-search') as HTMLInputElement | null;
+    const cards = document.querySelectorAll('.community-card-item') as NodeListOf<HTMLElement>;
+    const noResults = document.getElementById('no-search-results');
+    const countEl = document.getElementById('albums-count');
+
+    searchInput?.addEventListener('input', (e) => {
+      const query = (e.target as HTMLInputElement).value.toLowerCase().trim();
+      let visible = 0;
+
+      cards.forEach((card) => {
+        const name = card.dataset.name || '';
+        if (name.includes(query)) {
+          card.classList.remove('hidden');
+          visible++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      if (noResults) {
+        if (visible === 0 && query !== '') {
+          noResults.classList.remove('hidden');
+        } else {
+          noResults.classList.add('hidden');
+        }
+      }
+
+      if (countEl) {
+        countEl.textContent = `${visible} ${visible === 1 ? 'álbum' : 'álbumes'}`;
+      }
+    });
+  </script>
+</Layout>

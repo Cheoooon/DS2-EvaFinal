@@ -25,103 +25,446 @@ const [albumRes, stickersRes, followedRes] = await Promise.all([
 
 const isAccessible = albumRes.ok;
 
-const album = await albumRes.json();
+const album = isAccessible ? await albumRes.json() : null;
 const stickers = stickersRes.ok ? await stickersRes.json() : [];
 const followedAlbums = followedRes.ok ? await followedRes.json() : [];
 
-const isOwner = album.owner?.id === user?.sub;
+const isOwner = album?.owner?.id === user?.sub;
 const isFollowing = followedAlbums.some((a: any) => a.id === Number(id));
+
+// Si el usuario ya sigue el álbum, cargamos su libro de colección directamente en esta vista
+let book: any = null;
+let stats: any = null;
+
+if (isAccessible && isFollowing) {
+  const bookRes = await fetch(`${backendUrl}/collection/albums/${id}/book`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (bookRes.ok) {
+    book = await bookRes.json();
+    stats = book.stats;
+  }
+}
+
+// Conteo de rarezas
+const normalCount = stickers.filter((s: any) => (s.sticker_type || 'normal').toLowerCase() === 'normal').length;
+const holoCount = stickers.filter((s: any) => (s.sticker_type || '').toLowerCase() === 'holografica').length;
+const specialCount = stickers.filter((s: any) => (s.sticker_type || '').toLowerCase() === 'especial').length;
+
+const totalCount = stats?.total || stickers.length;
+const collectedCount = stats?.collected || 0;
+const progressPercent = totalCount > 0 ? Math.round((collectedCount / totalCount) * 100) : 0;
 ---
 
 <Layout title={isAccessible ? album.name : "Álbum no accesible"} user={user}>
   {!isAccessible ? (
-    <div style="background: white; padding: 40px; border-radius: 8px; border: 1px solid #cbd5e1; text-align: center; max-width: 500px; margin: 40px auto;">
-      <div style="font-size: 48px; margin-bottom: 16px;">🔒</div>
-      <h2 style="margin: 0 0 12px 0; color: #0f172a;">Álbum No Disponible</h2>
-      <p style="color: #64748b; margin-bottom: 24px;">
-        Este álbum no existe o su propietario lo ha configurado como privado.
+    <div class="max-w-md mx-auto my-12 bg-slate-900/90 backdrop-blur-md rounded-3xl p-8 sm:p-10 border border-slate-800 text-center shadow-2xl shadow-black/50">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-3xl mb-4">
+        🔒
+      </div>
+      <h2 class="text-xl font-extrabold text-white mb-2">Álbum No Disponible</h2>
+      <p class="text-sm text-slate-400 mb-6 leading-relaxed">
+        Este álbum no existe o su propietario ha decidido configurarlo como privado.
       </p>
-      <div style="display: flex; justify-content: center; gap: 16px; align-items: center; flex-wrap: wrap;">
-        <a href="/" style="display: inline-block; padding: 10px 20px; background: #0f172a; color: white; border-radius: 6px; text-decoration: none; font-weight: bold;">
-          &larr; Volver a Mis Colecciones
-        </a>
-        
-        <!-- Nuevo botón para quitar el álbum fantasma de la lista -->
-        <form method="POST" action={`/api/collection/${id}/unfollow`} onsubmit="return confirm('¿Quitar este álbum de tu lista de colecciones?');">
-          <button type="submit" style="padding: 10px 20px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-            🗑️ Quitar de mi lista
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a
+        href="/"
+        class="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-100 transition-colors"
+      >
+        <span>&larr;</span>
+        <span>Volver al Dashboard</span>
+      </a>
+
+        <form
+          method="POST"
+          action={`/api/collection/${id}/unfollow`}
+          data-confirm="¿Deseas quitar este álbum no disponible de tu lista de colecciones activas?"
+          data-confirm-title="Quitar álbum no disponible"
+          data-confirm-btn="Quitar de mi lista"
+          class="w-full sm:w-auto"
+        >
+          <button
+            type="submit"
+            class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 font-bold text-xs tracking-wide transition-all cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <span>🗑️</span>
+            <span>Quitar de mi lista</span>
           </button>
         </form>
       </div>
     </div>
   ) : (
-  <div style="margin-bottom: 20px;">
-    <a href="/" style="color: #0284c7; text-decoration: none;">&larr; Volver al Inicio</a>
-  </div>
+    <>
+      <!-- Barra Superior de Navegación -->
+      <div class="flex items-center justify-between gap-4 mb-6">
+      <a
+        href="/"
+        class="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-100 transition-colors"
+      >
+        <span>&larr;</span>
+        <span>Volver al Dashboard</span>
+      </a>
 
-  <header style="display: flex; justify-content: space-between; align-items: flex-start; background: white; padding: 24px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 30px;">
-    <div style="display: flex; gap: 20px;">
-      {album.cover_image ? (
-        <img src={`${backendUrl}${album.cover_image}`} alt={album.name} style="width: 120px; height: 120px; object-fit: cover; border-radius: 6px;" />
-      ) : (
-        <div style="width: 120px; height: 120px; background: #e2e8f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: bold;">
-          📘 Sin Portada
+        <div class="flex items-center gap-2">
+          {isFollowing ? (
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Colección Activa
+            </span>
+          ) : (
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800/80 text-slate-300 border border-slate-700/80">
+              <span>🌐</span> Vista Pública
+            </span>
+          )}
         </div>
-      )}
-      <div>
-        <h1 style="margin: 0 0 8px 0;">{album.name}</h1>
-        <p style="color: #64748b; margin: 0 0 12px 0;">{album.description || 'Sin descripción'}</p>
-        <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: #dcfce7; color: #166534;">
-          Creado por: {album.owner?.email || 'Comunidad'}
-        </span>
       </div>
-    </div>
 
-    <div style="display: flex; gap: 10px; flex-direction: column; align-items: flex-end;">
-      {isOwner && (
-        <a href={`/my-albums/${id}`} style="padding: 8px 14px; background: #f1f5f9; color: #0f172a; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; border: 1px solid #cbd5e1;">
-          ⚙️ Administrar (Creador)
-        </a>
-      )}
+      <!-- Panel Hero Principal Unificado -->
+      <header class="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl mb-10">
+        <div class="relative z-10 flex flex-col lg:flex-row justify-between gap-8 pb-6 border-b border-slate-800">
+          <!-- Portada y Datos del Álbum -->
+          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            <!-- Portada en Marco Coleccionable -->
+            <div class="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-slate-950 border-2 border-slate-700/80 shadow-2xl flex-shrink-0 flex items-center justify-center p-1.5 relative group">
+              {album.cover_image ? (
+                <img
+                  src={`${backendUrl}${album.cover_image}`}
+                  alt={album.name}
+                  class="w-full h-full object-cover rounded-xl"
+                />
+              ) : (
+                <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-br from-slate-800 to-slate-950 rounded-xl">
+                  <span class="text-4xl mb-1 opacity-50">📘</span>
+                  <span class="text-[10px] uppercase font-black text-slate-400 tracking-wider">Sin Portada</span>
+                </div>
+              )}
+            </div>
 
-      {isFollowing ? (
-        <>
-          <a href={`/my-collection/${id}`} style="padding: 10px 16px; background: #22c55e; color: white; border-radius: 6px; text-decoration: none; font-weight: bold;">
-            📖 Abrir mi Libro
-          </a>
-          <form method="POST" action={`/api/collection/${id}/unfollow`} onsubmit="return confirm('¿Dejar de coleccionar este álbum? Se perderá tu progreso.');">
-            <button type="submit" style="background: none; border: none; color: #ef4444; text-decoration: underline; cursor: pointer; font-size: 12px;">
-              Dejar de coleccionar
-            </button>
-          </form>
-        </>
-      ) : (
-        <form method="POST" action={`/api/collection/${id}/follow`}>
-          <button type="submit" style="padding: 10px 16px; background: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
-            ➕ Comenzar Colección
-          </button>
-        </form>
-      )}
-    </div>
-  </header>
+            <!-- Información y Badges de Estado -->
+            <div class="space-y-3">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${album.is_shared ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-800 text-slate-300 border-slate-700'}`}>
+                  {album.is_shared ? '🌐 Comunidad' : '🔒 Privado'}
+                </span>
 
-  <section>
-    <h2>Vista Previa de Láminas ({stickers.length})</h2>
-    {stickers.length === 0 ? (
-      <p style="color: #64748b;">Este álbum aún no tiene láminas cargadas.</p>
-    ) : (
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; opacity: 0.7;">
-        {stickers.map((s: any) => (
-          <StickerCard
-            number={s.number}
-            name={s.name}
-            type={s.sticker_type}
-            image={s.image ? `${backendUrl}${s.image}` : undefined}
-            editable={false}
-          />
-        ))}
-      </div>
-    )}
-  </section>
-)}
+                {isOwner && (
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                    <span>👑</span> Tu Creación
+                  </span>
+                )}
+
+                {isFollowing && (
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-sky-500/20 text-sky-300 border border-sky-500/40 flex items-center gap-1">
+                    <span>🔖</span> En tu Colección
+                  </span>
+                )}
+              </div>
+
+              <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+                {album.name}
+              </h1>
+
+              <p class="text-sm text-slate-300 max-w-2xl leading-relaxed">
+                {album.description || 'Este álbum no cuenta con una descripción detallada.'}
+              </p>
+
+              <!-- Insignias de Rarezas y Creador -->
+              <div class="flex items-center gap-2 flex-wrap pt-1">
+                <div class="inline-flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800/80 px-3 py-1 rounded-xl border border-slate-700/80">
+                  <span>👤</span>
+                  <span class="text-slate-400">Creador:</span>
+                  <strong class="text-white font-semibold">{album.owner?.email || 'Comunidad'}</strong>
+                </div>
+
+                <div class="inline-flex items-center gap-2 text-xs bg-slate-800/80 px-3 py-1 rounded-xl border border-slate-700/80 text-slate-300 font-semibold">
+                  <span>🎴 {stickers.length} Láminas</span>
+                  {holoCount > 0 && <span class="text-purple-300 border-l border-slate-700 pl-2">✨ {holoCount} Holo</span>}
+                  {specialCount > 0 && <span class="text-amber-300 border-l border-slate-700 pl-2">⭐ {specialCount} Especial</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Barra de Acciones según Permisos -->
+          <div class="flex flex-col sm:flex-row lg:flex-col gap-3 lg:items-end flex-shrink-0 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-800">
+            <!-- Acción principal: Comenzar / Dejar de Coleccionar -->
+            {isFollowing ? (
+              <form
+                method="POST"
+                action={`/api/collection/${id}/unfollow`}
+                data-confirm="¿Dejar de coleccionar este álbum? Se perderá todo tu registro de láminas obtenidas y estadísticas."
+                data-confirm-title="Dejar de Coleccionar Álbum"
+                data-confirm-btn="Sí, dejar de seguir"
+                class="w-full lg:w-auto"
+              >
+                <button
+                  type="submit"
+                  class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 transition-all cursor-pointer"
+                >
+                  <span>🗑️</span>
+                  <span>Dejar de Coleccionar</span>
+                </button>
+              </form>
+            ) : (
+              <form method="POST" action={`/api/collection/${id}/follow`} class="w-full lg:w-auto">
+                <button
+                  type="submit"
+                  class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-black text-slate-950 bg-sky-400 hover:bg-sky-300 shadow-lg shadow-sky-500/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                >
+                  <span>➕</span>
+                  <span>Comenzar Colección</span>
+                </button>
+              </form>
+            )}
+
+            <!-- Panel Creador (solo si es owner) -->
+            {isOwner && (
+              <a
+                href={`/my-albums/${id}`}
+                class="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-700 transition-all shadow-sm"
+              >
+                <span>⚙️</span>
+                <span>Panel Creador</span>
+              </a>
+            )}
+          </div>
+        </div>
+
+        <!-- Si el usuario está coleccionando, mostramos la Barra de Progreso y Estadísticas en Vivo -->
+        {isFollowing && stats && (
+          <div class="relative z-10 pt-6">
+            <div class="flex items-center justify-between gap-4 mb-2">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400">Progreso de tu Colección</span>
+              <span id="collection-progress-text" class="text-xs font-extrabold text-emerald-400">
+                {progressPercent}% Completado
+              </span>
+            </div>
+
+            <!-- Barra de Progreso Visual -->
+            <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6 border border-slate-700/60">
+              <div
+                id="collection-progress-bar"
+                class="h-full bg-gradient-to-r from-emerald-500 to-sky-400 transition-all duration-500 ease-out rounded-full"
+                style={`width: ${progressPercent}%;`}
+              ></div>
+            </div>
+
+            <!-- Tarjetas de Métricas en Tiempo Real -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div class="bg-slate-800/80 rounded-2xl p-3.5 border border-slate-700/80 text-center">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total</span>
+                <div id="stat-total" class="text-2xl sm:text-3xl font-black text-white mt-1">{stats.total}</div>
+              </div>
+
+              <div class="bg-emerald-950/40 rounded-2xl p-3.5 border border-emerald-500/30 text-center">
+                <span class="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">Obtenidas</span>
+                <div id="stat-collected" class="text-2xl sm:text-3xl font-black text-emerald-400 mt-1">{stats.collected}</div>
+              </div>
+
+              <div class="bg-rose-950/40 rounded-2xl p-3.5 border border-rose-500/30 text-center">
+                <span class="text-[11px] font-bold text-rose-300 uppercase tracking-wider">Faltantes</span>
+                <div id="stat-missing" class="text-2xl sm:text-3xl font-black text-rose-400 mt-1">{stats.missing}</div>
+              </div>
+
+              <div class="bg-amber-950/40 rounded-2xl p-3.5 border border-amber-500/30 text-center">
+                <span class="text-[11px] font-bold text-amber-300 uppercase tracking-wider">Repetidas</span>
+                <div id="stat-duplicates" class="text-2xl sm:text-3xl font-black text-amber-400 mt-1">{stats.duplicates}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <!-- Efecto de iluminación sutil de fondo -->
+        <div class="absolute -right-16 -bottom-16 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      </header>
+
+      <!-- Grilla de Láminas (Interactivas si está coleccionando, o Modo Vista Previa si aún no) -->
+      <section>
+        <div class="flex items-center justify-between gap-4 mb-6">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center font-bold text-lg">
+              🎴
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-white tracking-tight">
+                {isFollowing ? 'Tu Libro de Láminas' : 'Vista Previa de Láminas'}
+              </h2>
+              <p class="text-xs text-slate-400">
+                {isFollowing
+                  ? 'Marca tus láminas obtenidas y repetidas con los controles (+ / -) bajo cada carta'
+                  : 'Explora las láminas del álbum. Comienza la colección arriba para marcarlas'}
+              </p>
+            </div>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-800/80 text-slate-300 border border-slate-700/80">
+            {stickers.length} {stickers.length === 1 ? 'lámina' : 'láminas'}
+          </span>
+        </div>
+
+        {stickers.length === 0 ? (
+          <div class="bg-slate-900/60 rounded-3xl border border-dashed border-slate-800 p-12 text-center text-slate-400 max-w-lg mx-auto">
+            <span class="text-4xl block mb-2 opacity-50">📭</span>
+            <h3 class="font-bold text-slate-200 text-base mb-1">Este álbum aún no tiene láminas</h3>
+            <p class="text-xs text-slate-400">El creador aún no ha publicado láminas en esta colección.</p>
+          </div>
+        ) : isFollowing && book ? (
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
+            {book.stickers.map((s: any) => (
+              <StickerCard
+                id={s.id}
+                albumId={Number(id)}
+                number={s.number}
+                name={s.name}
+                type={s.sticker_type}
+                image={s.image ? `${backendUrl}${s.image}` : undefined}
+                isOwned={s.is_owned}
+                quantity={s.quantity}
+                showControls={true}
+              />
+            ))}
+          </div>
+        ) : (
+          <div class="space-y-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
+              {stickers.map((s: any) => (
+                <StickerCard
+                  number={s.number}
+                  name={s.name}
+                  type={s.sticker_type}
+                  image={s.image ? `${backendUrl}${s.image}` : undefined}
+                  editable={false}
+                />
+              ))}
+            </div>
+
+            <!-- Banner Invitación al pie de la grilla -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950/50 to-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl shadow-black/50">
+              <div class="flex items-center gap-5">
+                <div class="w-14 h-14 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center text-2xl shadow-inner flex-shrink-0">
+                  ✨
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold text-white">¿Quieres empezar este álbum?</h3>
+                  <p class="text-xs sm:text-sm text-slate-400 mt-0.5">
+                    Pulsa "Comenzar Colección" para habilitar los controles y registrar tus láminas en tiempo real.
+                  </p>
+                </div>
+              </div>
+
+              <form method="POST" action={`/api/collection/${id}/follow`} class="flex-shrink-0 w-full sm:w-auto">
+                <button
+                  type="submit"
+                  class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-sky-400 hover:bg-sky-300 text-slate-950 font-black text-xs shadow-lg shadow-sky-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <span>➕</span>
+                  <span>Comenzar Colección</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <style>
+        .card-unowned {
+          filter: grayscale(100%) contrast(75%);
+          opacity: 0.4;
+          border-color: #475569 !important;
+          box-shadow: none !important;
+        }
+        .card-unowned:hover {
+          filter: grayscale(40%) contrast(90%);
+          opacity: 0.75;
+        }
+        .card-owned {
+          filter: none;
+          opacity: 1;
+        }
+      </style>
+
+      <script>
+        const buttons = document.querySelectorAll('.action-btn');
+
+        buttons.forEach((btn) => {
+          btn.addEventListener('click', async (e) => {
+            const target = e.currentTarget as HTMLButtonElement;
+            const stickerId = target.dataset.id;
+            const action = target.dataset.action;
+
+            target.disabled = true;
+
+            const qtyElem = document.getElementById(`qty-${stickerId}`);
+            const oldQty = parseInt(qtyElem?.textContent || '0', 10);
+
+            try {
+              const res = await fetch(`/api/collection/stickers/${stickerId}/${action}`, {
+                method: 'POST',
+              });
+
+              if (res.ok) {
+                const data = await res.json();
+                const newQty = data.quantity || 0;
+                const cardElem = document.getElementById(`sticker-card-${stickerId}`);
+
+                if (qtyElem && cardElem) {
+                  qtyElem.textContent = newQty.toString();
+
+                  if (newQty > 0) {
+                    cardElem.classList.remove('card-unowned');
+                    cardElem.classList.add('card-owned');
+                    qtyElem.classList.remove('text-slate-300');
+                    qtyElem.classList.add('text-emerald-400', 'drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]');
+                  } else {
+                    cardElem.classList.remove('card-owned');
+                    cardElem.classList.add('card-unowned');
+                    qtyElem.classList.remove('text-emerald-400', 'drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]');
+                    qtyElem.classList.add('text-slate-300');
+                  }
+                }
+
+                const statCollectedElem = document.getElementById('stat-collected');
+                const statMissingElem = document.getElementById('stat-missing');
+                const statDuplicatesElem = document.getElementById('stat-duplicates');
+                const statTotalElem = document.getElementById('stat-total');
+                const progressBar = document.getElementById('collection-progress-bar');
+                const progressText = document.getElementById('collection-progress-text');
+
+                if (statCollectedElem && statMissingElem && statDuplicatesElem) {
+                  let currentCollected = parseInt(statCollectedElem.textContent || '0', 10);
+                  let currentMissing = parseInt(statMissingElem.textContent || '0', 10);
+                  let currentDuplicates = parseInt(statDuplicatesElem.textContent || '0', 10);
+                  const total = parseInt(statTotalElem?.textContent || '1', 10);
+
+                  if (oldQty === 0 && newQty > 0) {
+                    currentCollected += 1;
+                    currentMissing -= 1;
+                  } else if (oldQty > 0 && newQty === 0) {
+                    currentCollected -= 1;
+                    currentMissing += 1;
+                  }
+
+                  const oldDupeContrib = Math.max(0, oldQty - 1);
+                  const newDupeContrib = Math.max(0, newQty - 1);
+                  currentDuplicates += (newDupeContrib - oldDupeContrib);
+
+                  statCollectedElem.textContent = currentCollected.toString();
+                  statMissingElem.textContent = currentMissing.toString();
+                  statDuplicatesElem.textContent = currentDuplicates.toString();
+
+                  const newPercent = total > 0 ? Math.round((currentCollected / total) * 100) : 0;
+                  if (progressBar) progressBar.style.width = `${newPercent}%`;
+                  if (progressText) progressText.textContent = `${newPercent}% Completado`;
+                }
+              }
+            } catch (error) {
+              console.error("Error actualizando la lámina", error);
+            } finally {
+              target.disabled = false;
+            }
+          });
+        });
+      </script>
+    </>
+  )}
 </Layout>

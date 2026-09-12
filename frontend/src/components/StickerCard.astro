@@ -7,30 +7,156 @@ interface Props {
   type: string;
   image?: string;
   editable?: boolean;
+  isOwned?: boolean;
+  quantity?: number;
+  showControls?: boolean;
 }
 
-const { id, albumId, number, name, type, image, editable = false } = Astro.props;
+const {
+  id,
+  albumId,
+  number,
+  name,
+  type,
+  image,
+  editable = false,
+  isOwned = true,
+  quantity = 0,
+  showControls = false
+} = Astro.props;
+
+const normType = type?.toLowerCase() || 'normal';
+const isHolo = normType === 'holografica';
+const isSpecial = normType === 'especial';
+
+let borderClasses = 'border-2 border-slate-700/80 shadow-lg shadow-black/50 hover:border-sky-400 hover:shadow-2xl hover:shadow-sky-500/40 hover:-translate-y-1 transition-all duration-300';
+let badgeIcon = '';
+let cardBgGradient = 'from-slate-900 via-slate-900 to-slate-950';
+let glowColor = 'bg-sky-500/30';
+
+if (isHolo) {
+  borderClasses = 'border-2 border-purple-400 shadow-xl shadow-purple-950/50 hover:border-pink-300 hover:shadow-2xl hover:shadow-purple-500/50 hover:-translate-y-1 transition-all duration-300';
+  cardBgGradient = 'from-slate-900 via-indigo-950/80 to-purple-950';
+  glowColor = 'bg-purple-500/40';
+} else if (isSpecial) {
+  borderClasses = 'border-2 border-amber-400 shadow-xl shadow-amber-950/50 hover:border-yellow-300 hover:shadow-2xl hover:shadow-amber-500/50 hover:-translate-y-1 transition-all duration-300';
+  cardBgGradient = 'from-slate-900 via-amber-950/80 to-slate-950';
+  glowColor = 'bg-amber-500/40';
+}
 ---
 
-<div style="border: 1px dashed #cbd5e1; border-radius: 6px; padding: 12px; text-align: center; background: white; display: flex; flex-direction: column; justify-content: space-between; height: 100%; box-sizing: border-box;">
-  <div>
-    <span style="font-size: 12px; font-weight: bold; color: #64748b;">#{number}</span>
-    {image ? (
-      <img src={image} alt={name} style="width: 100%; height: 90px; object-fit: contain; display: block; margin: 8px 0;" />
-    ) : (
-      <div style="width: 100%; height: 90px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; margin: 8px 0;">
-        🖼️ Sin Imagen
-      </div>
+<div class="card-perspective-wrapper group relative flex flex-col items-center gap-3 w-full">
+  <!-- Sombra ambiental hover -->
+  <div class={`absolute inset-0 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${glowColor}`}></div>
+
+  <!-- Tarjeta 3D Poke-Holo -->
+  <div
+    id={id ? `sticker-card-${id}` : undefined}
+    class={`interactive-card ${isHolo ? 'card-holo' : ''} ${isSpecial ? 'card-special' : ''} relative aspect-[3/4.4] w-full rounded-2xl p-3 bg-gradient-to-b ${cardBgGradient} ${borderClasses} flex flex-col justify-between select-none cursor-pointer ${isOwned ? 'card-owned' : 'card-unowned'}`}
+  >
+    <div class="card-glare-layer"></div>
+
+    {isHolo && (
+      <>
+        <div class="holo-sheen-interactive"></div>
+        <div class="holo-foil-shimmer"></div>
+      </>
     )}
-    <h4 style="margin: 4px 0; font-size: 14px;">{name}</h4>
-    <span style="font-size: 10px; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: #f1f5f9; color: #334155;">
-      {type}
-    </span>
+
+    {isSpecial && (
+      <>
+        <div class="special-sheen-interactive"></div>
+        <div class="special-foil-shimmer"></div>
+        <div class="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-2xl">
+          <div class="absolute inset-0 bg-gradient-to-t from-amber-500/10 via-transparent to-amber-300/10 opacity-70"></div>
+          <span class="absolute top-10 right-3 text-amber-300 text-sm animate-twinkle-1 drop-shadow-[0_0_8px_rgba(251,191,36,0.9)]">✨</span>
+          <span class="absolute top-1/2 left-3 text-amber-200 text-xs animate-twinkle-2 drop-shadow-[0_0_8px_rgba(251,191,36,0.9)]">⭐</span>
+          <span class="absolute bottom-16 right-3 text-yellow-300 text-xs animate-twinkle-3 drop-shadow-[0_0_8px_rgba(251,191,36,0.9)]">✦</span>
+          <span class="absolute top-14 left-4 text-amber-100 text-[10px] animate-twinkle-4 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]">✧</span>
+        </div>
+      </>
+    )}
+
+    <!-- Header: Número y Badge -->
+    <div class="relative z-10 flex items-center justify-between pointer-events-none mb-2">
+      <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/20 text-white font-black text-xs shadow-md tracking-wider">
+        <span>#{number}</span>
+      </div>
+      {badgeIcon && (
+        <div class="w-7 h-7 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/20 flex items-center justify-center text-sm shadow-md">
+          <span>{badgeIcon}</span>
+        </div>
+      )}
+    </div>
+
+    <!-- Imagen -->
+    <div class="relative z-10 w-full flex-1 rounded-xl bg-slate-950 border-2 border-slate-700/60 shadow-inner flex items-center justify-center p-2.5 overflow-hidden">
+      {image ? (
+        <img src={image} alt={name} loading="lazy" class="w-full h-full object-contain pointer-events-none" />
+      ) : (
+        <div class="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-1">
+          <span class="text-4xl opacity-50">🃏</span>
+          <span class="text-[10px] uppercase font-black tracking-widest text-slate-400">Colección</span>
+        </div>
+      )}
+    </div>
+
+    <!-- Nombre -->
+    <div class="relative z-10 mt-2.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-white/15 px-3 py-2 text-center shadow-lg">
+      <h4 class="font-extrabold text-white text-xs sm:text-sm truncate leading-snug drop-shadow-sm" title={name}>
+        {name}
+      </h4>
+    </div>
   </div>
 
+  <!-- Botón Edición Creador -->
   {editable && id && albumId && (
-    <div style="margin-top: 10px; border-top: 1px solid #f1f5f9; padding-top: 8px;">
-      <a href={`/my-albums/${albumId}/stickers/${id}/edit`} style="font-size: 12px; color: #0284c7; text-decoration: none; font-weight: bold;">✏️ Editar</a>
+    <a
+      href={`/my-albums/${albumId}/stickers/${id}/edit`}
+      class="inline-flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm border border-slate-700/70 transition-all hover:scale-[1.02] active:scale-[0.98] z-10"
+      title={`Editar lámina #${number}`}
+    >
+      <span>✏️</span>
+      <span>Editar Lámina</span>
+    </a>
+  )}
+
+  <!-- Controles de Cantidad (+ / -) -->
+  {showControls && id && (
+    <div class="w-full flex items-center justify-between bg-slate-900/90 backdrop-blur-md border border-slate-800/80 p-1.5 rounded-xl shadow-lg shadow-black/30 z-10">
+      <button
+        type="button"
+        class="action-btn w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700/60 hover:border-rose-500/40 flex items-center justify-center transition-all active:scale-90 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+        data-id={id}
+        data-action="remove"
+        title="Restar una unidad"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
+        </svg>
+      </button>
+
+      <div class="flex items-baseline justify-center gap-1.5 px-2">
+        <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider leading-none">Tengo:</span>
+        <span
+          id={`qty-${id}`}
+          class={`text-sm font-black leading-none transition-colors ${quantity > 0 ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]' : 'text-slate-300'}`}
+        >
+          {quantity}
+        </span>
+      </div>
+
+      <button
+        type="button"
+        class="action-btn w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 border border-slate-700/60 hover:border-emerald-500/40 flex items-center justify-center transition-all active:scale-90 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+        data-id={id}
+        data-action="add"
+        title="Sumar una unidad"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
     </div>
   )}
 </div>

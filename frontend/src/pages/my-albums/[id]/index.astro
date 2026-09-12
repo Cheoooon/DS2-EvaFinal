@@ -33,50 +33,149 @@ const stickers = stickersRes.ok ? await stickersRes.json() : [];
 
 // Protección IDOR: Validar pertenencia del álbum
 if (album.owner?.id !== user?.sub) return Astro.redirect('/');
+
+// Conteo de rarezas para las estadísticas del creador
+const normalCount = stickers.filter((s: any) => (s.sticker_type || 'normal').toLowerCase() === 'normal').length;
+const holoCount = stickers.filter((s: any) => (s.sticker_type || '').toLowerCase() === 'holografica').length;
+const specialCount = stickers.filter((s: any) => (s.sticker_type || '').toLowerCase() === 'especial').length;
 ---
 
-<Layout title={album.name} user={user}>
-  <div style="margin-bottom: 20px;">
-    <a href="/my-albums" style="color: #0284c7; text-decoration: none;">&larr; Volver a Mis Álbumes</a>
+<Layout title={`Gestión: ${album.name}`} user={user}>
+  <!-- Barra Superior de Navegación y Contexto -->
+  <div class="flex items-center justify-between gap-4 mb-6">
+    <a
+      href="/my-albums"
+      class="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-500 hover:text-white transition-colors"
+    >
+      <span>&larr;</span>
+      <span>Volver a Mis Álbumes</span>
+    </a>
+
+    <div class="flex items-center gap-2">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300/80">
+        <span>👑</span> Panel del Creador
+      </span>
+    </div>
   </div>
 
-  <header style="display: flex; justify-content: space-between; align-items: flex-start; background: white; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 30px;">
-    <div style="display: flex; gap: 20px;">
-      {album.cover_image ? (
-        <img src={`${backendUrl}${album.cover_image}`} alt={album.name} style="width: 120px; height: 120px; object-fit: cover; border-radius: 6px;" />
-      ) : (
-        <div style="width: 120px; height: 120px; background: #e2e8f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #64748b;">
-          📘 Sin Portada
+  <!-- Panel Hero Principal Unificado -->
+  <header class="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl mb-10">
+    <div class="relative z-10 flex flex-col lg:flex-row justify-between gap-8">
+      <!-- Portada y Datos del Álbum -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+        <!-- Portada en Marco Coleccionable -->
+        <div class="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-slate-950 border-2 border-slate-700/80 shadow-2xl flex-shrink-0 flex items-center justify-center p-1.5 relative group">
+          {album.cover_image ? (
+            <img
+              src={`${backendUrl}${album.cover_image}`}
+              alt={album.name}
+              class="w-full h-full object-cover rounded-xl"
+            />
+          ) : (
+            <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-br from-slate-800 to-slate-950 rounded-xl">
+              <span class="text-4xl mb-1 opacity-50">📘</span>
+              <span class="text-[10px] uppercase font-black text-slate-400 tracking-wider">Sin Portada</span>
+            </div>
+          )}
         </div>
-      )}
-      <div>
-        <h1 style="margin: 0 0 8px 0;">{album.name}</h1>
-        <p style="color: #64748b; margin: 0 0 12px 0;">{album.description || 'Sin descripción'}</p>
-        <span style={`font-size: 12px; padding: 4px 8px; border-radius: 4px; background: ${album.is_shared ? '#dcfce7' : '#f1f5f9'}; color: ${album.is_shared ? '#166534' : '#475569'};`}>
-          {album.is_shared ? 'Publicado en la Comunidad' : 'Privado'}
-        </span>
+
+        <!-- Información y Badges de Estado -->
+        <div class="space-y-3">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${album.is_shared ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-800 text-slate-300 border-slate-700'}`}>
+              {album.is_shared ? '🌐 Publicado en la Comunidad' : '🔒 Álbum Privado'}
+            </span>
+
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+              <span>👑</span> Tu Creación
+            </span>
+          </div>
+
+          <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+            {album.name}
+          </h1>
+
+          <p class="text-sm text-slate-300 max-w-2xl leading-relaxed">
+            {album.description || 'Sin descripción asignada a este álbum.'}
+          </p>
+
+          <!-- Métricas de Rarezas del Álbum -->
+          <div class="flex items-center gap-2 flex-wrap pt-1">
+            <div class="inline-flex items-center gap-2 text-xs bg-slate-800/80 px-3 py-1 rounded-xl border border-slate-700/80 text-slate-300 font-semibold">
+              <span>🎴 {stickers.length} Láminas en total</span>
+              {holoCount > 0 && <span class="text-purple-300 border-l border-slate-700 pl-2">✨ {holoCount} Holográficas</span>}
+              {specialCount > 0 && <span class="text-amber-300 border-l border-slate-700 pl-2">⭐ {specialCount} Especiales</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra de Acciones del Creador -->
+      <div class="flex flex-col sm:flex-row lg:flex-col gap-2.5 lg:items-end flex-shrink-0 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-800">
+        <a
+          href={`/albums/${id}`}
+          class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-extrabold text-slate-950 bg-sky-400 hover:bg-sky-300 shadow-lg shadow-sky-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          title="Ver cómo lo ve la comunidad"
+        >
+          <span>🌐</span>
+          <span>Vista Pública</span>
+        </a>
+
+        <a
+          href={`/my-albums/${id}/edit`}
+          class="inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl text-sm font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-700 transition-all"
+        >
+          <span>✏️</span>
+          <span>Editar Álbum</span>
+        </a>
       </div>
     </div>
 
-    <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
-      <a href={`/albums/${id}`} style="padding: 8px 14px; background: #f8fafc; color: #0284c7; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; border: 1px solid #0284c7;">
-        🌐 Vista Pública
-      </a>
-      <a href={`/my-albums/${id}/edit`} style="padding: 8px 14px; background: #f1f5f9; color: #0f172a; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; border: 1px solid #cbd5e1;">
-        ✏️ Editar Álbum
-      </a>
-      <a href={`/my-albums/${id}/stickers/new`} style="padding: 8px 14px; background: #0284c7; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">
-        ➕ Cargar Láminas
-      </a>
-    </div>
+    <!-- Efecto de iluminación sutil de fondo -->
+    <div class="absolute -right-16 -bottom-16 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
   </header>
 
+  <!-- Lista de Láminas -->
   <section>
-    <h2>Láminas ({stickers.length})</h2>
+    <div class="flex items-center justify-between gap-4 mb-6">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-lg">
+          🎴
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-white tracking-tight">Láminas Creadas</h2>
+          <p class="text-xs text-slate-500">Usa el botón "Editar Lámina" debajo de cada tarjeta para modificar sus datos</p>
+        </div>
+      </div>
+
+      <a
+        href={`/my-albums/${id}/stickers/new`}
+        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors"
+      >
+        <span>➕</span>
+        <span>Cargar más</span>
+      </a>
+    </div>
+
     {stickers.length === 0 ? (
-      <p style="color: #64748b;">Este álbum no tiene láminas creadas.</p>
+      <div class="bg-white rounded-3xl border border-dashed border-slate-300 p-12 text-center max-w-lg mx-auto shadow-xs">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center text-3xl mb-4">
+          🎴
+        </div>
+        <h3 class="text-lg font-bold text-white mb-1">Este álbum no tiene láminas aún</h3>
+        <p class="text-sm text-slate-500 mb-6 leading-relaxed">
+          Comienza cargando las láminas que formarán parte de esta colección para compartirlas con otros usuarios.
+        </p>
+        <a
+          href={`/my-albums/${id}/stickers/new`}
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold shadow-sm shadow-sky-600/30 transition-all"
+        >
+          <span>➕</span>
+          <span>Cargar primeras láminas</span>
+        </a>
+      </div>
     ) : (
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
         {stickers.map((s: any) => (
           <StickerCard
             id={s.id}

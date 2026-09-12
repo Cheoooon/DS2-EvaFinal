@@ -10,5 +10,5 @@ export const POST: APIRoute = async ({ params, cookies, redirect }) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  return redirect('/');
+  return redirect(`/albums/${params.id}`);
 };

@@ -1,0 +1,128 @@
+---
+// Componente de modal de confirmación reutilizable
+---
+
+<dialog
+  id="app-confirm-dialog"
+  class="fixed inset-0 m-auto z-50 p-0 rounded-2xl bg-slate-900/95 backdrop-blur-md shadow-2xl shadow-black/80 backdrop:bg-black/75 backdrop:backdrop-blur-sm max-w-md w-full border border-slate-800 transition-all open:animate-in open:fade-in open:zoom-in-95"
+>
+  <div class="p-6">
+    <div class="flex items-start gap-4">
+      <div id="confirm-icon-wrapper" class="flex-shrink-0 w-12 h-12 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-xl border border-rose-500/20">
+        <span id="confirm-icon">⚠️</span>
+      </div>
+      <div class="flex-1">
+        <h3 id="confirm-title" class="text-lg font-bold text-white leading-6">
+          ¿Estás seguro?
+        </h3>
+        <p id="confirm-message" class="mt-2 text-sm text-slate-400 leading-relaxed">
+          Esta acción no se puede deshacer.
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-6 flex items-center justify-end gap-3 border-t border-slate-800 pt-4">
+      <button
+        type="button"
+        id="confirm-cancel-btn"
+        class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors border border-slate-700/80 focus:outline-none focus:ring-2 focus:ring-slate-700 cursor-pointer"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        id="confirm-accept-btn"
+        class="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-950/50 transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+      >
+        Confirmar
+      </button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  const dialog = document.getElementById('app-confirm-dialog') as HTMLDialogElement | null;
+  const titleEl = document.getElementById('confirm-title');
+  const messageEl = document.getElementById('confirm-message');
+  const cancelBtn = document.getElementById('confirm-cancel-btn');
+  const acceptBtn = document.getElementById('confirm-accept-btn');
+  const iconWrapper = document.getElementById('confirm-icon-wrapper');
+
+  let currentOnConfirm: (() => void) | null = null;
+
+  (window as any).showConfirmModal = function (options: {
+    title?: string;
+    message: string;
+    confirmText?: string;
+    isDanger?: boolean;
+    onConfirm: () => void;
+  }) {
+    if (!dialog) return;
+
+    if (titleEl) titleEl.textContent = options.title || '¿Estás seguro?';
+    if (messageEl) messageEl.textContent = options.message;
+    if (acceptBtn) {
+      acceptBtn.textContent = options.confirmText || 'Confirmar';
+      if (options.isDanger === false) {
+        acceptBtn.className = 'px-4 py-2.5 rounded-xl text-sm font-black text-slate-950 bg-sky-400 hover:bg-sky-300 shadow-lg shadow-sky-500/20 transition-all focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer';
+        if (iconWrapper) {
+          iconWrapper.className = 'flex-shrink-0 w-12 h-12 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center text-xl border border-sky-500/20';
+        }
+      } else {
+        acceptBtn.className = 'px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-950/50 transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer';
+        if (iconWrapper) {
+          iconWrapper.className = 'flex-shrink-0 w-12 h-12 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-xl border border-rose-500/20';
+        }
+      }
+    }
+
+    currentOnConfirm = options.onConfirm;
+    dialog.showModal();
+  };
+
+  cancelBtn?.addEventListener('click', () => {
+    dialog?.close();
+    currentOnConfirm = null;
+  });
+
+  acceptBtn?.addEventListener('click', () => {
+    dialog?.close();
+    if (currentOnConfirm) {
+      currentOnConfirm();
+      currentOnConfirm = null;
+    }
+  });
+
+  // Cerrar al hacer click en el backdrop
+  dialog?.addEventListener('click', (e) => {
+    const rect = dialog.getBoundingClientRect();
+    const isInDialog = (
+      rect.top <= e.clientY &&
+      e.clientY <= rect.top + rect.height &&
+      rect.left <= e.clientX &&
+      e.clientX <= rect.left + rect.width
+    );
+    if (!isInDialog) {
+      dialog.close();
+      currentOnConfirm = null;
+    }
+  });
+
+  // Intercepta automáticamente formularios con data-confirm
+  document.addEventListener('submit', (e) => {
+    const form = e.target as HTMLFormElement;
+    if (form && form.dataset.confirm && !form.dataset.confirmed) {
+      e.preventDefault();
+      (window as any).showConfirmModal({
+        title: form.dataset.confirmTitle || '¿Estás seguro?',
+        message: form.dataset.confirm,
+        confirmText: form.dataset.confirmBtn || 'Confirmar',
+        isDanger: form.dataset.confirmDanger !== 'false',
+        onConfirm: () => {
+          form.dataset.confirmed = 'true';
+          form.submit();
+        }
+      });
+    }
+  });
+</script>
