@@ -88,6 +88,55 @@ stickers-platform/
 └── README.md           # Guía general del proyecto
 ```
 
+## 🚀 Cómo levantar el proyecto en local
+
+No existe `package.json` raíz. Backend y frontend se instalan y ejecutan por separado.
+
+1. Instalar prerrequisitos:
+   - Node.js `>=22.12.0`.
+   - `pnpm`.
+   - Docker Desktop o una instancia MariaDB/MySQL local compatible.
+
+2. Crear variables de entorno locales desde los ejemplos:
+
+   ```bash
+   cp backend/.env.example backend/.env
+   cp frontend/.env.example frontend/.env
+   ```
+
+   En Windows PowerShell:
+
+   ```powershell
+   Copy-Item backend/.env.example backend/.env
+   Copy-Item frontend/.env.example frontend/.env
+   ```
+
+3. Levantar la base de datos desde la raíz del proyecto:
+
+   ```bash
+   docker compose up db
+   ```
+
+4. Levantar el backend en otra terminal:
+
+   ```bash
+   cd backend
+   pnpm install
+   pnpm run start:dev
+   ```
+
+   La API queda disponible en `http://localhost:3000`.
+
+5. Levantar el frontend en otra terminal:
+
+   ```bash
+   cd frontend
+   pnpm install
+   pnpm run dev
+   ```
+
+   Abrir la URL que muestre Astro en consola, normalmente `http://localhost:4321`.
+
 ## 🚀 Comandos Reales del Proyecto
 
 No existe `package.json` raíz. Los comandos se ejecutan desde la carpeta correspondiente.
