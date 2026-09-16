@@ -14,7 +14,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   });
 
   if (!res.ok) {
-    return redirect('/login?error=invalid_credentials');
+    const errorMessage = data.message || 'Error inesperado';
+    
+    return redirect(`/login?error=true&message=${encodeURIComponent(errorMessage)}`);
   }
 
   const data = await res.json();
