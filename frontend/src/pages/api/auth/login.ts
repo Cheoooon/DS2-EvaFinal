@@ -13,13 +13,13 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     body: JSON.stringify({ email, password }),
   });
 
+  const data = await res.json();
+
   if (!res.ok) {
     const errorMessage = data.message || 'Error inesperado';
     
     return redirect(`/login?error=true&message=${encodeURIComponent(errorMessage)}`);
   }
-
-  const data = await res.json();
 
   cookies.set('jwt', data.access_token, {
     path: '/',
