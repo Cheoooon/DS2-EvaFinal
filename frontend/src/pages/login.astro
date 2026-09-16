@@ -2,7 +2,9 @@
 import Layout from '../layouts/Layout.astro';
 
 if (Astro.cookies.has('jwt')) return Astro.redirect('/');
-const hasError = Astro.url.searchParams.get('error') === 'invalid_credentials';
+
+const isError = Astro.url.searchParams.get('error') === 'true';
+const errorMessage = Astro.url.searchParams.get('message') || 'Ocurrió un error al iniciar sesión.';
 ---
 
 <Layout title="Iniciar Sesión">
@@ -18,10 +20,10 @@ const hasError = Astro.url.searchParams.get('error') === 'invalid_credentials';
           <p class="text-sm text-slate-400 mt-1">Ingresa a tu cuenta de Sticker Collect</p>
         </div>
 
-        {hasError && (
+        {isError && (
           <div class="mb-6 p-4 rounded-xl bg-red-950/60 border border-red-800/70 text-red-300 text-sm flex items-center gap-3">
             <span class="text-lg">⚠️</span>
-            <span>Credenciales incorrectas. Verifica tu email y contraseña.</span>
+            <span>{errorMessage}</span>
           </div>
         )}
 
