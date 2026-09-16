@@ -14,7 +14,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   });
 
   if (!res.ok) {
-    return redirect('/register?error=true');
+    const errorMessage = data.message || 'Error inesperado';
+    
+    return redirect(`/register?error=true&message=${encodeURIComponent(errorMessage)}`);
   }
 
   const data = await res.json();
